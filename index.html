@@ -323,22 +323,54 @@
     top:0;
     background:var(--iron);
     border-bottom:1px solid var(--knurl);
-    padding:14px 18px;
+    /* clear the status bar and Dynamic Island — the sheet is fixed to the
+       viewport, so it does not inherit the body's safe-area padding */
+    padding:calc(12px + env(safe-area-inset-top)) 16px 12px 8px;
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    gap:12px;
+    gap:6px;
     z-index:2;
   }
+  .sl-back{
+    flex-shrink:0;
+    width:46px;
+    height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    color:var(--chalk);
+    border-radius:3px;
+    line-height:1;
+  }
+  .sl-back:hover{background:var(--plate-2);color:var(--amber);}
+  .sl-sheet-cancel{
+    display:block;
+    width:100%;
+    margin-top:26px;
+    padding:15px;
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    color:var(--steel);
+    font-family:var(--display);
+    font-size:17px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+  .sl-sheet-cancel:hover{color:var(--chalk);border-color:var(--steel-dim);}
   .sl-sheet-title{
     font-family:var(--display);
-    font-size:20px;
+    font-size:19px;
     font-weight:600;
-    letter-spacing:.10em;
+    letter-spacing:.08em;
     text-transform:uppercase;
-    line-height:1.1;
+    line-height:1.15;
+    flex:1;
+    min-width:0;
   }
-  .sl-sheet-body{padding:0 18px 40px;}
+  .sl-sheet-body{padding:0 16px calc(40px + env(safe-area-inset-bottom));}
+  .sl-sheet[data-anim="0"]{animation:none;}
 
   /* ---------- search + picker ---------- */
   .sl-search{
@@ -503,8 +535,8 @@
   /* ---------- set rows ---------- */
   .sl-setrow{
     display:grid;
-    grid-template-columns:34px 1fr 1fr 32px;
-    gap:8px;
+    grid-template-columns:24px 1fr 1fr 30px;
+    gap:6px;
     align-items:center;
     margin-bottom:9px;
   }
@@ -523,8 +555,8 @@
     overflow:hidden;
   }
   .sl-stepper button{
-    padding:11px 0;
-    width:32px;
+    padding:13px 0;
+    width:30px;
     flex-shrink:0;
     color:var(--steel);
     font-size:17px;
@@ -548,8 +580,8 @@
   .sl-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
   .sl-unitrow{
     display:grid;
-    grid-template-columns:34px 1fr 1fr 32px;
-    gap:8px;
+    grid-template-columns:24px 1fr 1fr 30px;
+    gap:6px;
     margin-bottom:6px;
   }
   .sl-unitlabel{
@@ -596,10 +628,16 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    gap:12px;
-    padding:11px 0;
+    gap:10px;
     border-bottom:1px solid var(--knurl);
   }
+  .sl-lib-tap{
+    flex:1;
+    min-width:0;
+    text-align:left;
+    padding:12px 0;
+  }
+  .sl-lib-tap:hover .sl-pick-name{color:var(--amber);}
   .sl-lib-meta{
     font-family:var(--mono);
     font-size:10px;
@@ -767,6 +805,18 @@
     border-radius:2px;
     background:var(--amber);
   }
+  .sl-calday u{
+    position:absolute;
+    bottom:3px;
+    left:0;
+    right:0;
+    text-align:center;
+    font-size:8px;
+    letter-spacing:.04em;
+    color:var(--steel-dim);
+    text-decoration:none;
+  }
+  .sl-calday[data-has="1"] u{color:var(--amber);}
   .sl-calday[data-today="1"]{border-color:var(--steel-dim);}
   .sl-calday[data-sel="1"]{
     background:var(--amber);
@@ -775,6 +825,16 @@
     font-weight:600;
   }
   .sl-calday[data-sel="1"] i{background:#171310;}
+  .sl-calday[data-sel="1"] u{color:#171310;}
+
+  .sl-splitnote{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    margin-top:8px;
+  }
 
   .sl-calstat{
     font-family:var(--mono);
@@ -824,7 +884,7 @@
     white-space:normal;
     line-height:1.4;
   }
-  .sl-sheet-title{max-width:75%;}
+
 
   .sl-loading{
     padding:70px 20px;
@@ -874,6 +934,7 @@
     histId: null,
     query: "",
     calMonth: null,
+    sheetOpen: false,
     eqFilter: "all",
     libFilter: "all",
     saving: false
@@ -1105,6 +1166,26 @@
   var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var MONFULL = ["January","February","March","April","May","June",
                  "July","August","September","October","November","December"];
+
+  /* Training splits. The muscle list drives what the picker offers on that day —
+     the point is that on a push day you shouldn't have to scroll past your back work. */
+  var SPLITS = [
+    ["push",  "Push",  "Chest · shoulders · triceps",  "PSH",
+      ["Chest","Shoulders","Arms · Triceps"]],
+    ["pull",  "Pull",  "Back · biceps",                "PLL",
+      ["Back","Arms · Biceps"]],
+    ["legs",  "Legs",  "Legs · calves · core",         "LEG",
+      ["Legs","Core"]],
+    ["upper", "Upper", "Chest · back · shoulders · arms","UPR",
+      ["Chest","Back","Shoulders","Arms · Triceps","Arms · Biceps"]],
+    ["lower", "Lower", "Legs · glutes · core",         "LWR",
+      ["Legs","Core"]]
+  ];
+  function splitById(id){
+    for(var i=0;i<SPLITS.length;i++){ if(SPLITS[i][0]===id) return SPLITS[i]; }
+    return null;
+  }
+  function dayTypeOf(date){ return (state.data.days && state.data.days[date]) || null; }
   function dayName(s){ return DOW[parseISO(s).getDay()]; }
   function shortDate(s){ var d=parseISO(s); return MON[d.getMonth()]+" "+d.getDate(); }
   function daysAgo(s){
@@ -1216,6 +1297,18 @@
     h += '<div class="sl-datestrip-sub">'+shortDate(d)+' &nbsp;▾</div></button>';
     h += '<button data-act="day" data-n="1" aria-label="Next day"'+(isToday?' disabled':'')+'>&#9654;</button>';
     h += '</div>';
+
+    var dt = dayTypeOf(d);
+    h += '<div class="sl-chips">';
+    SPLITS.forEach(function(sp){
+      h += '<button class="sl-chip" data-act="setsplit" data-split="'+sp[0]+'" data-on="'+
+           (dt===sp[0]?"1":"0")+'">'+sp[1]+'</button>';
+    });
+    h += '</div>';
+    if(dt){
+      var spd = splitById(dt);
+      h += '<div class="sl-splitnote">'+esc(spd[2])+' &nbsp;·&nbsp; tap again to clear</div>';
+    }
 
     if(todays.length){
       h += '<div class="sl-daystat"><b>'+todays.length+'</b> exercise'+(todays.length>1?'s':'')+
@@ -1364,12 +1457,12 @@
       h += '<div class="sl-libgroup">'+esc(m)+'</div>';
       groups[m].forEach(function(e){
         var n = sessionsFor(e.id).length;
-        h += '<div class="sl-lib-row"><div>';
+        h += '<div class="sl-lib-row"><button class="sl-lib-tap" data-act="choose" data-id="'+e.id+'">';
         h += '<div class="sl-pick-name" style="font-size:18px">'+esc(e.name)+'</div>';
         h += '<div class="sl-lib-meta">'+esc(e.gear)+'</div>';
         h += '<div class="sl-lib-meta">target '+e.target+' reps · '+(e.assist?'−':'+')+e.step+' '+unitLabel(e)+
              (n?' · '+n+' logged':'')+'</div>';
-        h += '</div><button class="sl-btn-quiet" data-act="editex" data-id="'+e.id+'">Edit</button></div>';
+        h += '</button><button class="sl-btn-quiet" data-act="editex" data-id="'+e.id+'">Edit</button></div>';
       });
     });
 
@@ -1400,16 +1493,46 @@
   }
 
   /* ============ sheets ============ */
-  function closeSheet(){ sheetMount.innerHTML = ""; state.draft = null; state.query = ""; }
+  var backFromPop = false;
 
-  function openSheet(title, bodyHTML, closeLabel){
+  function closeSheet(fromPop){
+    sheetMount.innerHTML = "";
+    state.draft = null;
+    state.query = "";
+    if(state.sheetOpen && !fromPop){
+      state.sheetOpen = false;
+      backFromPop = true;              // our own history.back, not a user gesture
+      try { history.back(); } catch(err){ backFromPop = false; }
+    } else {
+      state.sheetOpen = false;
+    }
+  }
+
+  /* The phone's back gesture should close the sheet, not leave the app. */
+  window.addEventListener("popstate", function(){
+    if(backFromPop){ backFromPop = false; return; }
+    if(state.sheetOpen) closeSheet(true);
+  });
+
+  /* noAnim: re-renders of an already-open sheet must not replay the entrance
+     animation, or every tap on a stepper looks like a flash. */
+  function openSheet(title, bodyHTML, closeLabel, noAnim){
+    var label = closeLabel || "Close";
     sheetMount.innerHTML =
-      '<div class="sl-sheet" role="dialog" aria-modal="true">'+
-        '<div class="sl-sheet-bar"><div class="sl-sheet-title">'+title+'</div>'+
-        '<button class="sl-btn-quiet" data-act="close">'+(closeLabel||"Close")+'</button></div>'+
-        '<div class="sl-sheet-body">'+bodyHTML+'</div>'+
+      '<div class="sl-sheet"'+(noAnim ? ' data-anim="0"' : '')+' role="dialog" aria-modal="true">'+
+        '<div class="sl-sheet-bar">'+
+          '<button class="sl-back" data-act="close" aria-label="'+label+'">&#8592;</button>'+
+          '<div class="sl-sheet-title">'+title+'</div>'+
+        '</div>'+
+        '<div class="sl-sheet-body">'+bodyHTML+
+          '<button class="sl-sheet-cancel" data-act="close">'+label+'</button>'+
+        '</div>'+
       '</div>';
-    sheetMount.querySelector(".sl-sheet").scrollTop = 0;
+    if(!state.sheetOpen){
+      state.sheetOpen = true;
+      try { history.pushState({ sheet: 1 }, ""); } catch(err){}
+    }
+    if(!noAnim) sheetMount.querySelector(".sl-sheet").scrollTop = 0;
   }
 
   /* Equipment filters. With 130-odd exercises, scrolling by muscle alone is too slow —
@@ -1450,16 +1573,32 @@
     return b;
   }
 
-  function openPicker(){
+  function openPicker(noAnim){
     var q = state.query.toLowerCase().trim();
     var filt = state.eqFilter || "all";
 
-    var list = state.data.exercises.filter(function(e){
-      if(filt !== "all" && e.eq !== filt) return false;
+    var dayT = dayTypeOf(state.date);
+    var sp = dayT ? splitById(dayT) : null;
+    var splitMuscles = (filt === "split" && sp) ? sp[4] : null;
+
+    function fits(e){
+      if(splitMuscles && splitMuscles.indexOf(e.muscle) < 0) return false;
+      if(filt !== "all" && filt !== "split" && e.eq !== filt) return false;
       return !q || (e.name+" "+e.gear+" "+e.muscle).toLowerCase().indexOf(q) >= 0;
-    });
+    }
+
+    var list = state.data.exercises.filter(fits);
 
     var b = '<input class="sl-search" id="sl-q" placeholder="Search exercise, machine or setting…" value="'+esc(state.query)+'" autocomplete="off">';
+
+    if(sp){
+      b += '<div class="sl-chips">';
+      b += '<button class="sl-chip" data-act="eqfilter" data-eq="split" data-on="'+
+           (filt==="split"?"1":"0")+'">'+sp[1]+' day only</button>';
+      b += '<button class="sl-chip" data-act="eqfilter" data-eq="all" data-on="'+
+           (filt==="all"?"1":"0")+'">Everything</button>';
+      b += '</div>';
+    }
 
     b += '<div class="sl-chips">';
     EQ.forEach(function(pair){
@@ -1469,8 +1608,8 @@
     b += '</div>';
 
     /* What you've actually been doing beats an alphabetical list. */
-    if(!q && filt === "all"){
-      var rec = recentExercises(6);
+    if(!q){
+      var rec = recentExercises(12).filter(fits).slice(0,6);
       if(rec.length){
         b += '<div class="sl-libgroup">Recent</div>';
         rec.forEach(function(e){ b += pickRow(e); });
@@ -1478,7 +1617,10 @@
     }
 
     if(!list.length){
-      b += '<div class="sl-empty"><strong>No match</strong>Nothing fits that. Try a different word, or add it yourself from the Exercises tab.</div>';
+      b += '<div class="sl-empty"><strong>No match</strong>'+
+           (splitMuscles ? 'Nothing here for a '+sp[1].toLowerCase()+' day. Tap <b>Everything</b> above to see the full library.'
+                         : 'Nothing fits that. Try a different word, or add it yourself from the Exercises tab.')+
+           '</div>';
     }
 
     var lastMuscle = "";
@@ -1487,13 +1629,13 @@
       b += pickRow(e);
     });
 
-    openSheet("Pick an exercise", b, "Cancel");
+    openSheet("Pick an exercise", b, "Cancel", noAnim);
 
     var qi = document.getElementById("sl-q");
     qi.addEventListener("input", function(){
       state.query = qi.value;
       var pos = qi.selectionStart;
-      openPicker();
+      openPicker(true);
       var ni = document.getElementById("sl-q");
       ni.focus(); ni.setSelectionRange(pos,pos);
     });
@@ -1513,7 +1655,7 @@
     drawLogger(e, prev, r);
   }
 
-  function drawLogger(e, prev, r){
+  function drawLogger(e, prev, r, noAnim){
     var b = '';
 
     /* last time */
@@ -1597,7 +1739,7 @@
     b += '<div style="margin-top:12px"><button class="sl-btn" data-act="savelog">Save to '+
          (state.date===todayISO()?'today':shortDate(state.date))+'</button></div>';
 
-    openSheet(esc(e.name)+'<div class="sl-sheet-sub">'+esc(e.gear)+'</div>', b, "Cancel");
+    openSheet(esc(e.name)+'<div class="sl-sheet-sub">'+esc(e.gear)+'</div>', b, "Cancel", noAnim);
   }
 
   /* Calendar. Days you trained are marked, so this doubles as a consistency view —
@@ -1634,12 +1776,14 @@
       var future = iso > today;
       var count = trained[iso] || 0;
       if(count){ daysTrained++; setsThisMonth += count; }
+      var sType = dayTypeOf(iso);
+      var sDef = sType ? splitById(sType) : null;
       b += '<button class="sl-calday" data-act="calpick" data-date="'+iso+'"'+
            (future ? ' disabled' : '')+
            ' data-sel="'+(iso === state.date ? "1" : "0")+'"'+
            ' data-today="'+(iso === today ? "1" : "0")+'"'+
            ' data-has="'+(count ? "1" : "0")+'">'+d+
-           (count ? '<i></i>' : '')+'</button>';
+           (sDef ? '<u>'+sDef[3]+'</u>' : (count ? '<i></i>' : ''))+'</button>';
     }
     b += '</div>';
 
@@ -1648,6 +1792,22 @@
       ? '<b>'+daysTrained+'</b> day'+(daysTrained>1?'s':'')+' trained in '+MONFULL[m]+
         ' &nbsp;·&nbsp; <b>'+setsThisMonth+'</b> sets'
       : 'Nothing logged in '+MONFULL[m]+' yet';
+
+    /* Split balance — the number that tells you whether you're skipping leg day. */
+    var tally = {}, anySplit = false;
+    Object.keys(state.data.days || {}).forEach(function(iso2){
+      if(iso2.slice(0,7) !== cm) return;
+      var k = state.data.days[iso2];
+      tally[k] = (tally[k] || 0) + 1;
+      anySplit = true;
+    });
+    if(anySplit){
+      var parts = [];
+      SPLITS.forEach(function(spx){
+        if(tally[spx[0]]) parts.push(spx[1]+' <b>'+tally[spx[0]]+'</b>');
+      });
+      b += '<div style="margin-top:8px">'+parts.join(' &nbsp;·&nbsp; ')+'</div>';
+    }
     b += '</div>';
 
     if(state.date !== today){
@@ -1708,6 +1868,14 @@
     if(tab){ state.tab = tab; state.histId = null; render(); return; }
 
     if(act==="day"){ state.date = shiftISO(state.date, +t.getAttribute("data-n")); render(); return; }
+    if(act==="setsplit"){
+      var sid = t.getAttribute("data-split");
+      state.data.days = state.data.days || {};
+      if(state.data.days[state.date] === sid) delete state.data.days[state.date];
+      else state.data.days[state.date] = sid;
+      commit();
+      return;
+    }
     if(act==="cal"){ state.calMonth = state.date.slice(0,7); openCalendar(); return; }
     if(act==="calshift"){
       var cy = +state.calMonth.slice(0,4), cmo = +state.calMonth.slice(5,7) - 1 + (+t.getAttribute("data-n"));
@@ -1724,8 +1892,13 @@
       return;
     }
     if(act==="close"){ closeSheet(); return; }
-    if(act==="pick"){ state.query=""; openPicker(); return; }
-    if(act==="eqfilter"){ state.eqFilter = t.getAttribute("data-eq"); openPicker(); return; }
+    if(act==="pick"){
+      state.query = "";
+      state.eqFilter = dayTypeOf(state.date) ? "split" : "all";
+      openPicker();
+      return;
+    }
+    if(act==="eqfilter"){ state.eqFilter = t.getAttribute("data-eq"); openPicker(true); return; }
     if(act==="libfilter"){ state.libFilter = t.getAttribute("data-eq"); render(); return; }
     if(act==="choose"){ openLogger(t.getAttribute("data-id")); return; }
     if(act==="hist"){ state.histId = t.getAttribute("data-id"); render(); return; }
@@ -1737,20 +1910,24 @@
       var i = +t.getAttribute("data-i"), n = +t.getAttribute("data-n");
       var e = ex(state.draft.exerciseId);
       var s = state.draft.sets[i];
-      if(act==="w") s.w = Math.max(0, s.w + n*e.step);
+      if(act==="w") s.w = Math.max(0, Math.round((s.w + n*e.step) * 100) / 100);
       else s.r = Math.max(1, s.r + n);
-      redrawLogger();
+      /* Write straight into the input. Redrawing the whole sheet for one tap was
+         what made the screen flash on every press. */
+      var fld = sheetMount.querySelector('input[data-fld="'+act+'"][data-i="'+i+'"]');
+      if(fld) fld.value = (act === "w" ? s.w : s.r);
+      else redrawLogger(true);
       return;
     }
     if(act==="addset"){
       var last = state.draft.sets[state.draft.sets.length-1];
       state.draft.sets.push({w:last.w, r:last.r});
-      redrawLogger();
+      redrawLogger(true);
       return;
     }
     if(act==="rmset"){
       state.draft.sets.splice(+t.getAttribute("data-i"),1);
-      redrawLogger();
+      redrawLogger(true);
       return;
     }
 
@@ -1846,13 +2023,13 @@
     else state.draft.sets[i].r = Math.max(0, Math.round(v));
   });
 
-  function redrawLogger(){
+  function redrawLogger(noAnim){
     var e = ex(state.draft.exerciseId);
     var hist = sessionsFor(e.id).filter(function(s){ return s.date !== state.date; });
     var prev = hist[0] || null;
     var scroller = sheetMount.querySelector(".sl-sheet");
     var y = scroller ? scroller.scrollTop : 0;
-    drawLogger(e, prev, readiness(e, prev));
+    drawLogger(e, prev, readiness(e, prev), noAnim);
     var ns = sheetMount.querySelector(".sl-sheet");
     if(ns) ns.scrollTop = y;
   }
@@ -1868,11 +2045,11 @@
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
   function exportCSV(){
-    var rows = [["date","exercise","equipment","muscle","set","weight_lb","reps"]];
+    var rows = [["date","day_type","exercise","equipment","muscle","set","weight_lb","reps"]];
     state.data.sessions.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).forEach(function(s){
       var e = ex(s.exerciseId); if(!e) return;
       s.sets.forEach(function(st,i){
-        rows.push([s.date, e.name, e.gear, e.muscle, i+1, st.w, st.r]);
+        rows.push([s.date, dayTypeOf(s.date) || "", e.name, e.gear, e.muscle, i+1, st.w, st.r]);
       });
     });
     if(rows.length===1){ toast("Nothing to export yet"); return; }
@@ -1975,10 +2152,11 @@
       state.data = saved;
       if(!state.data.sessions) state.data.sessions = [];
       if(!state.data.meta) state.data.meta = { lastBackup: null };
+      if(!state.data.days) state.data.days = {};
       state.data = migrateLibrary(state.data);
       save();
     } else {
-      state.data = { exercises: seed(), sessions: [], meta: { lastBackup: null, libVersion: LIB_VERSION } };
+      state.data = { exercises: seed(), sessions: [], days: {}, meta: { lastBackup: null, libVersion: LIB_VERSION } };
       save();
     }
     document.getElementById("sl-boot").classList.add("sl-hide");
