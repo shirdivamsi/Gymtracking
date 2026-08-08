@@ -649,6 +649,42 @@
 
   .sl-datafoot{margin-top:34px;padding-top:18px;border-top:1px solid var(--knurl);display:flex;gap:8px;flex-wrap:wrap;}
 
+  .sl-nag{
+    border:1px solid var(--amber-dim);
+    background:rgba(240,180,41,.07);
+    border-radius:3px;
+    padding:13px 14px;
+    margin-top:18px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .sl-nag-text{flex:1;min-width:180px;font-size:13px;line-height:1.5;color:var(--steel);}
+  .sl-nag-text b{color:var(--chalk);font-weight:600;}
+  .sl-nag-go{
+    font-family:var(--display);
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    background:var(--amber);
+    color:#171310;
+    padding:10px 14px;
+    border-radius:3px;
+    flex-shrink:0;
+  }
+
+  .sl-status{
+    font-family:var(--mono);
+    font-size:11px;
+    line-height:1.7;
+    color:var(--steel-dim);
+    margin-top:14px;
+  }
+  .sl-status b{color:var(--chalk);font-weight:500;}
+  .sl-status i{font-style:normal;color:var(--amber);}
+
   .sl-loading{
     padding:70px 20px;
     text-align:center;
@@ -691,7 +727,8 @@
   var state = {
     tab: "today",
     date: todayISO(),
-    data: { exercises: [], sessions: [] },
+    data: { exercises: [], sessions: [], meta: { lastBackup: null } },
+    persisted: null,
     draft: null,
     histId: null,
     query: "",
@@ -878,6 +915,18 @@
     var vol = todays.reduce(function(t,s){ return t+volume(s); },0);
 
     var h = '';
+
+    /* Nag, but only when there's genuinely something to lose. */
+    var age = backupAge();
+    if(age && (age.never ? age.days >= 3 : age.days >= 14)){
+      var n = state.data.sessions.length;
+      h += '<div class="sl-nag"><div class="sl-nag-text">';
+      h += age.never
+        ? '<b>'+n+' session'+(n>1?'s':'')+' logged, never backed up.</b> Clearing your browser data would erase all of it.'
+        : '<b>Last backup was '+age.days+' days ago.</b> Anything since then is only on this phone.';
+      h += '</div><button class="sl-nag-go" data-act="exportjson">Back up now</button></div>';
+    }
+
     h += '<div class="sl-datestrip">';
     h += '<button data-act="day" data-n="-1" aria-label="Previous day">&#9664;</button>';
     h += '<div class="sl-datestrip-mid"><div class="sl-datestrip-day">'+(isToday?"Today":dayName(d))+'</div>';
@@ -1026,7 +1075,15 @@
     h += '<button class="sl-btn-quiet" data-act="import">Restore backup</button>';
     h += '<input type="file" id="sl-file" accept="application/json,.json" style="display:none">';
     h += '</div>';
-    h += '<div class="sl-hint" style="margin-top:12px">Your log is saved in this browser and stays here between sessions. Export a backup now and then — that file is also how you move your history to another phone or browser.</div>';
+    var age2 = backupAge();
+    h += '<div class="sl-status">';
+    h += 'Sessions stored: <b>'+state.data.sessions.length+'</b><br>';
+    h += 'Last backup: <b>'+(age2 && !age2.never ? age2.days+' days ago' :
+         (state.data.sessions.length ? '<i>never</i>' : '—'))+'</b><br>';
+    h += 'Eviction protection: <b>'+(state.persisted===null ? 'checking…' :
+         (state.persisted ? 'on' : '<i>off</i>'))+'</b>';
+    h += '</div>';
+    h += '<div class="sl-hint" style="margin-top:12px">Your log is saved in this browser only — it is not in the repo and not on a server. <b style="color:var(--chalk);font-weight:600">Clearing cookies and site data in Chrome will erase it.</b> Clearing browsing history alone will not. Export a backup regularly and keep the file somewhere off this phone; Restore backup reads it straight back.</div>';
     pageEl.innerHTML = h;
   }
 
@@ -1369,16 +1426,39 @@
   }
   function exportJSON(){
     download("strength-log-backup-"+todayISO()+".json", JSON.stringify(state.data,null,2), "application/json");
-    toast("Backup downloaded");
+    state.data.meta = state.data.meta || {};
+    state.data.meta.lastBackup = todayISO();
+    commit("Backed up — keep that file off this phone");
+  }
+
+  /* How exposed is the log right now? */
+  function backupAge(){
+    if(!state.data.sessions.length) return null;          // nothing to lose yet
+    var last = state.data.meta && state.data.meta.lastBackup;
+    if(!last) return { never:true, days: daysAgo(state.data.sessions
+      .map(function(s){ return s.date; }).sort()[0]) };
+    return { never:false, days: daysAgo(last) };
   }
 
   /* ============ boot ============ */
+  /* Ask the browser not to evict this origin when the device runs low on space.
+     This does nothing against a manual "clear site data" — only backups cover that. */
+  if(navigator.storage && navigator.storage.persist){
+    navigator.storage.persisted()
+      .then(function(already){ return already ? true : navigator.storage.persist(); })
+      .then(function(ok){ state.persisted = !!ok; if(state.tab==="library") render(); })
+      .catch(function(){ state.persisted = false; });
+  } else {
+    state.persisted = false;
+  }
+
   load().then(function(saved){
     if(saved && saved.exercises && saved.exercises.length){
       state.data = saved;
       if(!state.data.sessions) state.data.sessions = [];
+      if(!state.data.meta) state.data.meta = { lastBackup: null };
     } else {
-      state.data = { exercises: seed(), sessions: [] };
+      state.data = { exercises: seed(), sessions: [], meta: { lastBackup: null } };
       save();
     }
     document.getElementById("sl-boot").classList.add("sl-hide");
