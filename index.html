@@ -685,6 +685,20 @@
   .sl-status b{color:var(--chalk);font-weight:500;}
   .sl-status i{font-style:normal;color:var(--amber);}
 
+  .sl-toggle{
+    font-family:var(--display);
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:9px 18px;
+    border-radius:3px;
+    border:1px solid var(--knurl);
+    color:var(--steel-dim);
+    flex-shrink:0;
+  }
+  .sl-toggle[data-on="1"]{background:var(--amber);color:#171310;border-color:var(--amber);}
+
   .sl-loading{
     padding:70px 20px;
     text-align:center;
@@ -1069,6 +1083,16 @@
       });
     });
 
+    var autoOn = !(state.data.meta && state.data.meta.autoBackup === false);
+    h += '<div class="sl-eyebrow">Keeping your log safe</div>';
+    h += '<div class="sl-card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+    h += '<div style="flex:1;min-width:170px">';
+    h += '<div style="font-size:14px;font-weight:600;margin-bottom:4px">Auto-backup after each workout</div>';
+    h += '<div style="font-size:12px;line-height:1.5;color:var(--steel-dim)">Saves a copy to your Downloads folder the first time you log each day. Downloads survive clearing your browser data.</div>';
+    h += '</div>';
+    h += '<button class="sl-toggle" data-act="autotoggle" data-on="'+(autoOn?"1":"0")+'">'+(autoOn?'On':'Off')+'</button>';
+    h += '</div>';
+
     h += '<div class="sl-datafoot">';
     h += '<button class="sl-btn-quiet" data-act="export">Export CSV</button>';
     h += '<button class="sl-btn-quiet" data-act="exportjson">Export backup</button>';
@@ -1312,6 +1336,7 @@
         return !(s.exerciseId===exId && s.date===state.date);
       });
       state.data.sessions.push({ id:uid(), date:state.date, exerciseId:exId, sets:clean });
+      autoBackup();
       closeSheet();
       commit("Saved");
       return;
@@ -1356,6 +1381,13 @@
       return;
     }
 
+    if(act==="autotoggle"){
+      state.data.meta = state.data.meta || {};
+      var was = state.data.meta.autoBackup !== false;
+      state.data.meta.autoBackup = !was;
+      commit(was ? "Auto-backup off" : "Auto-backup on");
+      return;
+    }
     if(act==="export"){ exportCSV(); return; }
     if(act==="exportjson"){ exportJSON(); return; }
     if(act==="import"){ document.getElementById("sl-file").click(); return; }
@@ -1424,6 +1456,23 @@
     download("strength-log-"+todayISO()+".csv", csv, "text/csv");
     toast("CSV downloaded");
   }
+  /* Automatic backup.
+     Fires straight after you save a workout, so it runs inside the tap that saved it —
+     browsers only allow downloads during a real user gesture. The file lands in Downloads,
+     which lives outside the browser and survives clearing cookies and site data.
+     One file per training day: the same day's file just gets rewritten. */
+  function autoBackup(){
+    var m = state.data.meta = state.data.meta || {};
+    if(m.autoBackup === false) return;
+    if(m.lastAuto === todayISO()) return;      // already captured today
+    try {
+      download("strength-log-"+todayISO()+".json",
+               JSON.stringify(state.data,null,2), "application/json");
+      m.lastAuto = todayISO();
+      m.lastBackup = todayISO();
+    } catch(e){ /* a failed backup must never block saving the workout */ }
+  }
+
   function exportJSON(){
     download("strength-log-backup-"+todayISO()+".json", JSON.stringify(state.data,null,2), "application/json");
     state.data.meta = state.data.meta || {};
