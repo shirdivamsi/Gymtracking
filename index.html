@@ -213,7 +213,8 @@
   }
   .sl-datestrip button:hover:not(:disabled){color:var(--amber);}
   .sl-datestrip button:disabled{color:#2C3237;cursor:not-allowed;}
-  .sl-datestrip-mid{text-align:center;padding:9px 4px;flex:1;}
+  .sl-datestrip-mid{text-align:center;padding:9px 4px;flex:1;background:none;border:none;color:inherit;}
+  .sl-datestrip-mid:hover .sl-datestrip-sub{color:var(--amber);}
   .sl-datestrip-day{
     font-family:var(--display);
     font-size:19px;
@@ -647,7 +648,7 @@
     white-space:nowrap;
   }
 
-  .sl-datafoot{margin-top:34px;padding-top:18px;border-top:1px solid var(--knurl);display:flex;gap:8px;flex-wrap:wrap;}
+  .sl-datafoot{margin-top:30px;padding-top:18px;border-top:1px solid var(--knurl);}
 
   .sl-nag{
     border:1px solid var(--amber-dim);
@@ -699,6 +700,132 @@
   }
   .sl-toggle[data-on="1"]{background:var(--amber);color:#171310;border-color:var(--amber);}
 
+  /* ---------- calendar ---------- */
+  .sl-calhead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:18px;
+    gap:8px;
+  }
+  .sl-calhead button{
+    padding:11px 16px;
+    color:var(--steel);
+    font-size:15px;
+    line-height:1;
+    border:1px solid var(--knurl);
+    border-radius:3px;
+  }
+  .sl-calhead button:hover:not(:disabled){color:var(--amber);border-color:var(--steel-dim);}
+  .sl-calhead button:disabled{color:#2A3035;border-color:#232A2E;cursor:not-allowed;}
+  .sl-calmonth{
+    font-family:var(--display);
+    font-size:21px;
+    font-weight:600;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+  }
+
+  .sl-calgrid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+    margin-top:16px;
+  }
+  .sl-caldow{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.08em;
+    color:var(--steel-dim);
+    text-align:center;
+    padding-bottom:6px;
+  }
+  .sl-calday{
+    position:relative;
+    aspect-ratio:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--steel);
+    border:1px solid transparent;
+    border-radius:3px;
+    background:var(--plate);
+    padding-bottom:5px;
+  }
+  .sl-calday:disabled{background:transparent;color:#2A3035;cursor:not-allowed;}
+  .sl-calday[data-has="1"]{color:var(--chalk);background:var(--plate-2);}
+  /* the training mark */
+  .sl-calday i{
+    position:absolute;
+    bottom:6px;
+    left:50%;
+    transform:translateX(-50%);
+    width:14px;
+    height:3px;
+    border-radius:2px;
+    background:var(--amber);
+  }
+  .sl-calday[data-today="1"]{border-color:var(--steel-dim);}
+  .sl-calday[data-sel="1"]{
+    background:var(--amber);
+    color:#171310;
+    border-color:var(--amber);
+    font-weight:600;
+  }
+  .sl-calday[data-sel="1"] i{background:#171310;}
+
+  .sl-calstat{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    text-align:center;
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid var(--knurl);
+  }
+  .sl-calstat b{color:var(--amber);font-weight:500;}
+
+  .sl-chips{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding:12px 0 2px;
+    margin:0 -18px;
+    padding-left:18px;
+    padding-right:18px;
+    scrollbar-width:none;
+  }
+  .sl-chips::-webkit-scrollbar{display:none;}
+  .sl-chip{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    white-space:nowrap;
+    padding:8px 13px;
+    border:1px solid var(--knurl);
+    border-radius:999px;
+    color:var(--steel-dim);
+    flex-shrink:0;
+  }
+  .sl-chip[data-on="1"]{background:var(--amber);color:#171310;border-color:var(--amber);}
+
+  .sl-sheet-sub{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    margin-top:4px;
+    white-space:normal;
+    line-height:1.4;
+  }
+  .sl-sheet-title{max-width:75%;}
+
   .sl-loading{
     padding:70px 20px;
     text-align:center;
@@ -746,56 +873,180 @@
     draft: null,
     histId: null,
     query: "",
+    calMonth: null,
+    eqFilter: "all",
+    libFilter: "all",
     saving: false
   };
 
   /* ============ seed library ============ */
+  /* ============ exercise library ============
+     Built around what a Planet Fitness floor actually has: selectorized machines,
+     Hammer Strength plate-loaded, Smith machines, a dual adjustable cable tower,
+     dumbbells to 75 lb, and fixed-weight barbells. No Olympic bars or racks.
+
+     Row format:
+       [ muscle, name, equipment label, category, target reps, weight step,
+         per-side?, assistance? ]
+
+     per-side   plate-loaded gear where you load each arm separately — the number
+                you log is the weight on ONE side, not the total.
+     assistance machines where the stack COUNTERWEIGHTS you (assisted pull-up/dip).
+                A lower number is harder, so progress runs downward. */
   function seed(){
-    var raw = [
-      ["Chest","Chest press","Machine",10,5],
-      ["Chest","Incline chest press","Machine",10,5],
-      ["Chest","Pec deck fly","Machine",12,5],
-      ["Chest","Cable fly","Cable · D-handles",12,5],
-      ["Chest","Dumbbell bench press","Dumbbells",10,5],
-      ["Chest","Barbell bench press","Barbell",8,5],
+    var L = [
 
-      ["Back","Lat pulldown","Cable · wide bar",10,5],
-      ["Back","Seated cable row","Cable · V-handle",10,5],
-      ["Back","Straight-arm pulldown","Cable · straight bar",12,5],
-      ["Back","Machine row","Machine",10,5],
-      ["Back","Barbell row","Barbell",8,5],
-      ["Back","Pull-up","Bodyweight",8,5],
+    /* ---------------- CHEST ---------------- */
+    ["Chest","Chest press","Machine · selectorized","Machine",10,5,0,0],
+    ["Chest","Incline chest press","Machine · selectorized","Machine",10,5,0,0],
+    ["Chest","Pec deck fly","Machine · pec deck","Machine",12,5,0,0],
+    ["Chest","Hammer Strength chest press","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Chest","Hammer Strength incline press","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Chest","Hammer Strength decline press","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Chest","Hammer Strength iso-lateral press","Hammer Strength · one arm at a time","Hammer",10,10,1,0],
+    ["Chest","Cable fly — HIGH pulley","Dual pulley · top setting, high to low","Cable",12,5,0,0],
+    ["Chest","Cable fly — MID pulley","Dual pulley · chest height, straight across","Cable",12,5,0,0],
+    ["Chest","Cable fly — LOW pulley","Dual pulley · bottom setting, low to high","Cable",12,5,0,0],
+    ["Chest","Cable press — MID pulley","Dual pulley · chest height, standing press","Cable",10,5,0,0],
+    ["Chest","Single-arm cable fly — HIGH pulley","Dual pulley · top setting, one arm","Cable",12,5,0,0],
+    ["Chest","Single-arm cable fly — LOW pulley","Dual pulley · bottom setting, one arm","Cable",12,5,0,0],
+    ["Chest","Smith bench press","Smith machine · flat bench","Smith",8,10,0,0],
+    ["Chest","Smith incline press","Smith machine · incline bench","Smith",8,10,0,0],
+    ["Chest","Smith decline press","Smith machine · decline bench","Smith",8,10,0,0],
+    ["Chest","Dumbbell bench press","Dumbbells · flat bench","Dumbbell",10,5,1,0],
+    ["Chest","Dumbbell incline press","Dumbbells · incline bench","Dumbbell",10,5,1,0],
+    ["Chest","Dumbbell fly","Dumbbells · flat bench","Dumbbell",12,5,1,0],
+    ["Chest","Dumbbell incline fly","Dumbbells · incline bench","Dumbbell",12,5,1,0],
+    ["Chest","Push-up","Bodyweight","Body",15,0,0,0],
 
-      ["Legs","Leg press","Machine",10,10],
-      ["Legs","Hack squat","Machine",8,10],
-      ["Legs","Leg extension","Machine",12,10],
-      ["Legs","Seated leg curl","Machine",12,10],
-      ["Legs","Barbell squat","Barbell",8,10],
-      ["Legs","Romanian deadlift","Barbell",8,10],
-      ["Legs","Hip thrust","Barbell",10,10],
-      ["Legs","Calf raise","Machine",15,10],
+    /* ---------------- BACK ---------------- */
+    ["Back","Lat pulldown — wide bar","Cable tower · wide bar, overhand","Machine",10,5,0,0],
+    ["Back","Lat pulldown — close grip","Cable tower · V-handle","Machine",10,5,0,0],
+    ["Back","Lat pulldown — reverse grip","Cable tower · straight bar, underhand","Machine",10,5,0,0],
+    ["Back","Seated cable row — V-handle","Cable row station","Machine",10,5,0,0],
+    ["Back","Seated cable row — wide bar","Cable row station","Machine",10,5,0,0],
+    ["Back","Seated row machine","Machine · selectorized, chest pad","Machine",10,5,0,0],
+    ["Back","Straight-arm pulldown — bar","Dual pulley · top setting, straight bar","Cable",12,5,0,0],
+    ["Back","Straight-arm pulldown — rope","Dual pulley · top setting, rope","Cable",12,5,0,0],
+    ["Back","Cable row — HIGH pulley","Dual pulley · top setting, pull to face","Cable",12,5,0,0],
+    ["Back","Cable row — MID pulley","Dual pulley · chest height, pull to ribs","Cable",10,5,0,0],
+    ["Back","Single-arm cable row — LOW pulley","Dual pulley · bottom setting, one arm","Cable",12,5,0,0],
+    ["Back","Cable pullover — HIGH pulley","Dual pulley · top setting, arms straight","Cable",12,5,0,0],
+    ["Back","Hammer Strength iso-lateral row","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Back","Hammer Strength high row","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Back","Hammer Strength low row","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Back","Hammer Strength pulldown","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Back","Smith bent-over row","Smith machine","Smith",8,10,0,0],
+    ["Back","Smith inverted row","Smith machine · bar set low","Smith",12,0,0,0],
+    ["Back","Dumbbell row","Dumbbells · one arm, bench support","Dumbbell",10,5,1,0],
+    ["Back","Dumbbell pullover","Dumbbells · across bench","Dumbbell",12,5,0,0],
+    ["Back","Assisted pull-up","Gravitron · assistance stack","Machine",8,5,0,1],
+    ["Back","Assisted chin-up","Gravitron · underhand, assistance stack","Machine",8,5,0,1],
+    ["Back","Back extension","Hyperextension bench","Body",15,5,0,0],
 
-      ["Shoulders","Shoulder press","Machine",10,5],
-      ["Shoulders","Dumbbell shoulder press","Dumbbells",10,5],
-      ["Shoulders","Lateral raise","Dumbbells",12,5],
-      ["Shoulders","Cable lateral raise","Cable · D-handle",12,5],
-      ["Shoulders","Rear delt fly","Machine",12,5],
-      ["Shoulders","Face pull","Cable · rope",15,5],
+    /* ---------------- SHOULDERS ---------------- */
+    ["Shoulders","Shoulder press machine","Machine · selectorized","Machine",10,5,0,0],
+    ["Shoulders","Lateral raise machine","Machine · selectorized","Machine",12,5,0,0],
+    ["Shoulders","Reverse pec deck","Machine · pec deck reversed, rear delts","Machine",12,5,0,0],
+    ["Shoulders","Hammer Strength shoulder press","Hammer Strength · plate-loaded","Hammer",10,10,1,0],
+    ["Shoulders","Cable lateral raise — LOW pulley","Dual pulley · bottom setting, one arm","Cable",12,5,0,0],
+    ["Shoulders","Cable front raise — LOW pulley","Dual pulley · bottom setting","Cable",12,5,0,0],
+    ["Shoulders","Cable rear delt fly — HIGH pulley","Dual pulley · top setting, cross arms","Cable",12,5,0,0],
+    ["Shoulders","Face pull — HIGH pulley","Dual pulley · top setting, rope","Cable",15,5,0,0],
+    ["Shoulders","Face pull — MID pulley","Dual pulley · chest height, rope","Cable",15,5,0,0],
+    ["Shoulders","Cable upright row — LOW pulley","Dual pulley · bottom setting, bar","Cable",12,5,0,0],
+    ["Shoulders","Cable shrug — LOW pulley","Dual pulley · bottom setting","Cable",15,5,0,0],
+    ["Shoulders","Smith overhead press","Smith machine · seated or standing","Smith",8,10,0,0],
+    ["Shoulders","Smith shrug","Smith machine","Smith",15,10,0,0],
+    ["Shoulders","Dumbbell shoulder press","Dumbbells · seated","Dumbbell",10,5,1,0],
+    ["Shoulders","Dumbbell lateral raise","Dumbbells","Dumbbell",12,5,1,0],
+    ["Shoulders","Dumbbell front raise","Dumbbells","Dumbbell",12,5,1,0],
+    ["Shoulders","Dumbbell rear delt fly","Dumbbells · bent over or incline","Dumbbell",12,5,1,0],
+    ["Shoulders","Dumbbell shrug","Dumbbells","Dumbbell",15,5,1,0],
+    ["Shoulders","Fixed-bar front raise","Fixed-weight barbell","Bar",12,10,0,0],
+    ["Shoulders","Fixed-bar upright row","Fixed-weight barbell","Bar",12,10,0,0],
 
-      ["Arms","Tricep pushdown","Cable · rope",10,5],
-      ["Arms","Overhead tricep extension","Cable · rope",12,5],
-      ["Arms","Tricep dip","Machine",10,5],
-      ["Arms","Dumbbell bicep curl","Dumbbells",10,5],
-      ["Arms","Cable curl","Cable · EZ bar",12,5],
-      ["Arms","Preacher curl","Machine",10,5],
-      ["Arms","Hammer curl","Dumbbells",10,5],
+    /* ---------------- TRICEPS ---------------- */
+    ["Arms · Triceps","Tricep pushdown — rope","Dual pulley · top setting, rope","Cable",10,5,0,0],
+    ["Arms · Triceps","Tricep pushdown — straight bar","Dual pulley · top setting, straight bar","Cable",10,5,0,0],
+    ["Arms · Triceps","Tricep pushdown — V-bar","Dual pulley · top setting, V-bar","Cable",10,5,0,0],
+    ["Arms · Triceps","Tricep pushdown — reverse grip","Dual pulley · top setting, underhand","Cable",12,5,0,0],
+    ["Arms · Triceps","Single-arm pushdown — HIGH pulley","Dual pulley · top setting, one arm","Cable",12,5,0,0],
+    ["Arms · Triceps","Overhead tricep extension — LOW pulley","Dual pulley · bottom setting, rope, facing away","Cable",12,5,0,0],
+    ["Arms · Triceps","Cable kickback — LOW pulley","Dual pulley · bottom setting, one arm","Cable",15,5,0,0],
+    ["Arms · Triceps","Tricep extension machine","Machine · selectorized","Machine",10,5,0,0],
+    ["Arms · Triceps","Assisted dip","Gravitron · assistance stack","Machine",10,5,0,1],
+    ["Arms · Triceps","Smith close-grip bench press","Smith machine · flat bench","Smith",8,10,0,0],
+    ["Arms · Triceps","Dumbbell overhead extension","Dumbbells · two hands, one bell","Dumbbell",12,5,0,0],
+    ["Arms · Triceps","Dumbbell skull crusher","Dumbbells · flat bench","Dumbbell",12,5,1,0],
+    ["Arms · Triceps","Dumbbell kickback","Dumbbells · one arm","Dumbbell",15,5,1,0],
+    ["Arms · Triceps","Bench dip","Bodyweight · feet on floor or bench","Body",15,0,0,0],
 
-      ["Core","Cable crunch","Cable · rope",15,5],
-      ["Core","Ab crunch","Machine",15,5],
-      ["Core","Hanging leg raise","Bodyweight",12,5]
+    /* ---------------- BICEPS ---------------- */
+    ["Arms · Biceps","Cable curl — LOW pulley, EZ bar","Dual pulley · bottom setting, EZ bar","Cable",12,5,0,0],
+    ["Arms · Biceps","Cable curl — LOW pulley, straight bar","Dual pulley · bottom setting, straight bar","Cable",12,5,0,0],
+    ["Arms · Biceps","Cable hammer curl — LOW pulley, rope","Dual pulley · bottom setting, rope","Cable",12,5,0,0],
+    ["Arms · Biceps","Single-arm cable curl — LOW pulley","Dual pulley · bottom setting, one arm","Cable",12,5,0,0],
+    ["Arms · Biceps","Cable curl — HIGH pulley","Dual pulley · top setting, both arms, double-biceps pose","Cable",12,5,0,0],
+    ["Arms · Biceps","Bicep curl machine","Machine · selectorized","Machine",10,5,0,0],
+    ["Arms · Biceps","Preacher curl machine","Machine · selectorized, arm pad","Machine",10,5,0,0],
+    ["Arms · Biceps","Dumbbell bicep curl","Dumbbells","Dumbbell",10,5,1,0],
+    ["Arms · Biceps","Dumbbell hammer curl","Dumbbells · neutral grip","Dumbbell",12,5,1,0],
+    ["Arms · Biceps","Dumbbell incline curl","Dumbbells · incline bench","Dumbbell",12,5,1,0],
+    ["Arms · Biceps","Dumbbell concentration curl","Dumbbells · seated, elbow on thigh","Dumbbell",12,5,1,0],
+    ["Arms · Biceps","Fixed-bar curl","Fixed-weight barbell","Bar",10,10,0,0],
+    ["Arms · Biceps","Fixed-bar preacher curl","Fixed-weight barbell · preacher bench","Bar",10,10,0,0],
+
+    /* ---------------- LEGS ---------------- */
+    ["Legs","Leg press","Machine · 45° or seated sled","Machine",10,10,0,0],
+    ["Legs","Leg extension","Machine · selectorized","Machine",12,10,0,0],
+    ["Legs","Seated leg curl","Machine · selectorized","Machine",12,10,0,0],
+    ["Legs","Lying leg curl","Machine · selectorized","Machine",12,10,0,0],
+    ["Legs","Hip abductor","Machine · legs press outward","Machine",15,10,0,0],
+    ["Legs","Hip adductor","Machine · legs squeeze inward","Machine",15,10,0,0],
+    ["Legs","Seated calf raise","Machine · knees bent","Machine",15,10,0,0],
+    ["Legs","Standing calf raise","Machine · knees straight","Machine",15,10,0,0],
+    ["Legs","Glute kickback machine","Machine · one leg at a time","Machine",12,5,0,0],
+    ["Legs","Hack squat","Machine · angled sled","Machine",8,10,0,0],
+    ["Legs","Hammer Strength leg press","Hammer Strength · plate-loaded","Hammer",10,25,1,0],
+    ["Legs","Hammer Strength V-squat","Hammer Strength · plate-loaded","Hammer",8,25,1,0],
+    ["Legs","Smith squat","Smith machine","Smith",8,10,0,0],
+    ["Legs","Smith front squat","Smith machine · bar on front delts","Smith",8,10,0,0],
+    ["Legs","Smith split squat","Smith machine · one leg forward","Smith",10,10,0,0],
+    ["Legs","Smith Romanian deadlift","Smith machine · hinge, soft knees","Smith",10,10,0,0],
+    ["Legs","Smith hip thrust","Smith machine · bench under back","Smith",10,10,0,0],
+    ["Legs","Smith calf raise","Smith machine · toes on plate","Smith",15,10,0,0],
+    ["Legs","Cable kickback — LOW pulley","Dual pulley · bottom setting, ankle strap","Cable",15,5,0,0],
+    ["Legs","Cable pull-through — LOW pulley","Dual pulley · bottom setting, rope between legs","Cable",12,5,0,0],
+    ["Legs","Cable hip abduction — LOW pulley","Dual pulley · bottom setting, ankle strap","Cable",15,5,0,0],
+    ["Legs","Dumbbell goblet squat","Dumbbells · one bell at chest","Dumbbell",10,5,0,0],
+    ["Legs","Dumbbell lunge","Dumbbells · walking or stationary","Dumbbell",10,5,1,0],
+    ["Legs","Dumbbell Romanian deadlift","Dumbbells","Dumbbell",10,5,1,0],
+    ["Legs","Dumbbell step-up","Dumbbells · bench or step","Dumbbell",12,5,1,0],
+    ["Legs","Dumbbell calf raise","Dumbbells · standing","Dumbbell",15,5,1,0],
+
+    /* ---------------- CORE ---------------- */
+    ["Core","Ab crunch machine","Machine · selectorized","Machine",15,5,0,0],
+    ["Core","Rotary torso machine","Machine · seated twist, obliques","Machine",15,5,0,0],
+    ["Core","Cable crunch — HIGH pulley","Dual pulley · top setting, rope, kneeling","Cable",15,5,0,0],
+    ["Core","Cable woodchop — HIGH pulley","Dual pulley · top setting, high to low","Cable",12,5,0,0],
+    ["Core","Cable woodchop — LOW pulley","Dual pulley · bottom setting, low to high","Cable",12,5,0,0],
+    ["Core","Cable oblique twist — MID pulley","Dual pulley · chest height, rotate across","Cable",12,5,0,0],
+    ["Core","Captain's chair leg raise","Roman chair · elbows on pads","Body",12,0,0,0],
+    ["Core","Hanging knee raise","Bodyweight · hang from bar","Body",12,0,0,0],
+    ["Core","Decline sit-up","Decline bench","Body",15,5,0,0],
+    ["Core","Plank","Bodyweight · log seconds in the reps field","Body",45,0,0,0],
+    ["Core","Dumbbell side bend","Dumbbells · one arm","Dumbbell",15,5,1,0]
+
     ];
-    return raw.map(function(r,i){
-      return { id:"x"+i, muscle:r[0], name:r[1], gear:r[2], target:r[3], step:r[4] };
+
+    return L.map(function(r,i){
+      return {
+        id: "x"+i,
+        muscle: r[0], name: r[1], gear: r[2], eq: r[3],
+        target: r[4], step: r[5],
+        perSide: !!r[6], assist: !!r[7]
+      };
     });
   }
 
@@ -852,6 +1103,8 @@
   }
   var DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var MONFULL = ["January","February","March","April","May","June",
+                 "July","August","September","October","November","December"];
   function dayName(s){ return DOW[parseISO(s).getDay()]; }
   function shortDate(s){ var d=parseISO(s); return MON[d.getMonth()]+" "+d.getDate(); }
   function daysAgo(s){
@@ -889,6 +1142,15 @@
     return best;
   }
   function topWeight(sess){ return topSet(sess).w; }
+
+  /* The hardest set of a session. On a normal machine that's the heaviest weight.
+     On an assisted pull-up or dip the stack counterweights you, so the LIGHTEST
+     setting is the hard one and progress means the number going down. */
+  function hardest(sess, e){
+    var ws = sess.sets.map(function(s){ return s.w; });
+    return (e && e.assist) ? Math.min.apply(null, ws) : Math.max.apply(null, ws);
+  }
+  function unitLabel(e){ return e && e.perSide ? "lb/side" : "lb"; }
   function volume(sess){
     return sess.sets.reduce(function(t,s){ return t + s.w*s.r; },0);
   }
@@ -897,14 +1159,20 @@
   /* the progressive-overload rule */
   function readiness(exercise, prev){
     if(!prev) return null;
-    var w = topWeight(prev);
-    var atTop = prev.sets.filter(function(s){ return s.w >= w; });
+    var w = hardest(prev, exercise);
+    var atTop = prev.sets.filter(function(s){
+      return exercise.assist ? s.w <= w : s.w >= w;
+    });
     var cleared = atTop.length >= 2 && atTop.every(function(s){ return s.r >= exercise.target; });
+    var next = exercise.assist
+      ? Math.max(0, w - exercise.step)     // less help = harder
+      : w + exercise.step;
     return {
       ready: cleared,
       weight: w,
-      next: w + exercise.step,
-      target: exercise.target
+      next: next,
+      target: exercise.target,
+      assist: !!exercise.assist
     };
   }
 
@@ -943,8 +1211,9 @@
 
     h += '<div class="sl-datestrip">';
     h += '<button data-act="day" data-n="-1" aria-label="Previous day">&#9664;</button>';
-    h += '<div class="sl-datestrip-mid"><div class="sl-datestrip-day">'+(isToday?"Today":dayName(d))+'</div>';
-    h += '<div class="sl-datestrip-sub">'+shortDate(d)+'</div></div>';
+    h += '<button class="sl-datestrip-mid" data-act="cal" aria-label="Pick a date from the calendar">';
+    h += '<div class="sl-datestrip-day">'+(isToday?"Today":dayName(d))+'</div>';
+    h += '<div class="sl-datestrip-sub">'+shortDate(d)+' &nbsp;▾</div></button>';
     h += '<button data-act="day" data-n="1" aria-label="Next day"'+(isToday?' disabled':'')+'>&#9654;</button>';
     h += '</div>';
 
@@ -976,6 +1245,15 @@
     }
 
     h += '<div style="margin-top:14px"><button class="sl-btn" data-act="pick">+ Log an exercise</button></div>';
+
+    if(state.data.sessions.length){
+      var a = backupAge();
+      var when = !a ? '' : (a.never ? ' · never backed up'
+              : (a.days === 0 ? ' · backed up today' : ' · last backup ' + a.days + 'd ago'));
+      h += '<div style="margin-top:10px"><button class="sl-btn-ghost" data-act="exportjson">'+
+           'Back up log'+when+'</button></div>';
+    }
+
     pageEl.innerHTML = h;
   }
 
@@ -1000,7 +1278,7 @@
       h += '<button class="sl-pick" data-act="hist" data-id="'+e.id+'">';
       h += '<div><div class="sl-pick-name">'+esc(e.name)+'</div>';
       h += '<div class="sl-pick-gear">'+esc(e.gear)+' · '+ss.length+' session'+(ss.length>1?'s':'')+'</div></div>';
-      h += '<div class="sl-pick-last">'+wTxt(topWeight(last))+'<small>'+agoText(last.date)+'</small></div>';
+      h += '<div class="sl-pick-last">'+hardest(last, e)+' <small style="display:inline;font-size:9px">'+unitLabel(e)+'</small><small>'+agoText(last.date)+'</small></div>';
       h += '</button>';
     });
     pageEl.innerHTML = h;
@@ -1009,23 +1287,25 @@
   function renderHistoryDetail(e){
     var ss = sessionsFor(e.id);
     var chron = ss.slice().reverse();
-    var best = 0, bestDate = "";
+    var best = hardest(chron[0], e), bestDate = chron[0].date;
     chron.forEach(function(s){
-      if(topWeight(s) >= best){ best = topWeight(s); bestDate = s.date; }
+      var w = hardest(s, e);
+      if(e.assist ? w <= best : w >= best){ best = w; bestDate = s.date; }
     });
-    var first = topWeight(chron[0]);
-    var gain = best - first;
+    var first = hardest(chron[0], e);
+    var gain = e.assist ? (first - best) : (best - first);
 
     var h = '<div style="margin-top:18px"><button class="sl-btn-quiet" data-act="histback">← All exercises</button></div>';
     h += '<div style="margin-top:18px"><div class="sl-entry-name" style="font-size:26px">'+esc(e.name)+'</div>';
-    h += '<div class="sl-entry-gear">'+esc(e.gear)+' · target '+e.target+' reps · steps of '+e.step+' lb</div></div>';
+    h += '<div class="sl-entry-gear">'+esc(e.gear)+'</div>';
+    h += '<div class="sl-entry-gear">target '+e.target+' reps · steps of '+e.step+' '+unitLabel(e)+(e.assist?' assistance':'')+'</div></div>';
 
     h += '<div class="sl-eyebrow">Working weight over time</div>';
-    h += spark(chron);
+    h += spark(chron, e);
     h += '<div class="sl-daystat" style="display:flex;gap:18px;flex-wrap:wrap">';
-    h += '<span>Best <b>'+wTxt(best)+'</b> · '+shortDate(bestDate)+'</span>';
-    h += '<span>Started <b>'+wTxt(first)+'</b></span>';
-    if(gain>0) h += '<span style="color:var(--amber)">+'+gain+' lb</span>';
+    h += '<span>'+(e.assist?'Least help':'Best')+' <b>'+best+' '+unitLabel(e)+'</b> · '+shortDate(bestDate)+'</span>';
+    h += '<span>Started <b>'+first+' '+unitLabel(e)+'</b></span>';
+    if(gain>0) h += '<span style="color:var(--amber)">'+(e.assist?'−':'+')+gain+' lb</span>';
     h += '</div>';
 
     h += '<div class="sl-eyebrow">Session by session</div>';
@@ -1039,10 +1319,10 @@
     pageEl.innerHTML = h;
   }
 
-  function spark(chron){
+  function spark(chron, e){
     if(chron.length < 2) return '<div class="sl-hint" style="margin-top:10px">One session so far — the line shows up after the second.</div>';
     var w = 520, hh = 56, pad = 4;
-    var vals = chron.map(topWeight);
+    var vals = chron.map(function(s){ return hardest(s, e); });
     var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
     if(mx===mn){ mx = mn+1; }
     var pts = vals.map(function(v,i){
@@ -1062,14 +1342,23 @@
   }
 
   function renderLibrary(){
+    var lfx = state.libFilter || "all";
     var groups = {};
     state.data.exercises.forEach(function(e){
+      if(lfx !== "all" && e.eq !== lfx) return;
       (groups[e.muscle] = groups[e.muscle] || []).push(e);
     });
-    var order = ["Chest","Back","Legs","Shoulders","Arms","Core"];
+    var order = ["Chest","Back","Shoulders","Arms · Triceps","Arms · Biceps","Legs","Core"];
     Object.keys(groups).forEach(function(k){ if(order.indexOf(k)<0) order.push(k); });
 
-    var h = '<div style="margin-top:18px"><button class="sl-btn-ghost" data-act="newex">+ Add your own exercise</button></div>';
+    var lf = state.libFilter || "all";
+    var h = '<div class="sl-chips" style="margin-top:16px">';
+    EQ.forEach(function(pair){
+      h += '<button class="sl-chip" data-act="libfilter" data-eq="'+pair[0]+'" data-on="'+
+           (lf===pair[0]?"1":"0")+'">'+pair[1]+'</button>';
+    });
+    h += '</div>';
+    h += '<div style="margin-top:14px"><button class="sl-btn-ghost" data-act="newex">+ Add your own exercise</button></div>';
     order.forEach(function(m){
       if(!groups[m]) return;
       h += '<div class="sl-libgroup">'+esc(m)+'</div>';
@@ -1077,7 +1366,8 @@
         var n = sessionsFor(e.id).length;
         h += '<div class="sl-lib-row"><div>';
         h += '<div class="sl-pick-name" style="font-size:18px">'+esc(e.name)+'</div>';
-        h += '<div class="sl-lib-meta">'+esc(e.gear)+' · target '+e.target+' reps · +'+e.step+' lb'+
+        h += '<div class="sl-lib-meta">'+esc(e.gear)+'</div>';
+        h += '<div class="sl-lib-meta">target '+e.target+' reps · '+(e.assist?'−':'+')+e.step+' '+unitLabel(e)+
              (n?' · '+n+' logged':'')+'</div>';
         h += '</div><button class="sl-btn-quiet" data-act="editex" data-id="'+e.id+'">Edit</button></div>';
       });
@@ -1093,12 +1383,10 @@
     h += '<button class="sl-toggle" data-act="autotoggle" data-on="'+(autoOn?"1":"0")+'">'+(autoOn?'On':'Off')+'</button>';
     h += '</div>';
 
-    h += '<div class="sl-datafoot">';
-    h += '<button class="sl-btn-quiet" data-act="export">Export CSV</button>';
-    h += '<button class="sl-btn-quiet" data-act="exportjson">Export backup</button>';
-    h += '<button class="sl-btn-quiet" data-act="import">Restore backup</button>';
+    h += '<div class="sl-datafoot"><button class="sl-btn" data-act="exportjson">Back up now</button></div>';
+    h += '<div style="margin-top:10px"><button class="sl-btn-ghost" data-act="import">Restore from a backup</button></div>';
+    h += '<div style="margin-top:10px"><button class="sl-btn-ghost" data-act="export">Export CSV for analysis</button></div>';
     h += '<input type="file" id="sl-file" accept="application/json,.json" style="display:none">';
-    h += '</div>';
     var age2 = backupAge();
     h += '<div class="sl-status">';
     h += 'Sessions stored: <b>'+state.data.sessions.length+'</b><br>';
@@ -1124,27 +1412,83 @@
     sheetMount.querySelector(".sl-sheet").scrollTop = 0;
   }
 
+  /* Equipment filters. With 130-odd exercises, scrolling by muscle alone is too slow —
+     but you already know which machine you're standing at. */
+  var EQ = [
+    ["all",     "All"],
+    ["Cable",   "Cable"],
+    ["Machine", "Machine"],
+    ["Hammer",  "Hammer"],
+    ["Smith",   "Smith"],
+    ["Dumbbell","Dumbbell"],
+    ["Bar",     "Fixed bar"],
+    ["Body",    "Bodyweight"]
+  ];
+
+  function recentExercises(limit){
+    var seen = {}, out = [];
+    state.data.sessions.slice()
+      .sort(function(a,b){ return a.date < b.date ? 1 : -1; })
+      .forEach(function(sess){
+        if(out.length >= limit || seen[sess.exerciseId]) return;
+        var e = ex(sess.exerciseId);
+        if(!e) return;
+        seen[sess.exerciseId] = 1;
+        out.push(e);
+      });
+    return out;
+  }
+
+  function pickRow(e){
+    var ss = sessionsFor(e.id);
+    var b = '<button class="sl-pick" data-act="choose" data-id="'+e.id+'">';
+    b += '<div><div class="sl-pick-name">'+esc(e.name)+'</div><div class="sl-pick-gear">'+esc(e.gear)+'</div></div>';
+    b += ss.length
+      ? '<div class="sl-pick-last">'+hardest(ss[0], e)+'<small>'+agoText(ss[0].date)+'</small></div>'
+      : '<div class="sl-pick-last" style="color:var(--steel-dim)">—<small>New</small></div>';
+    b += '</button>';
+    return b;
+  }
+
   function openPicker(){
-    var q = state.query.toLowerCase();
+    var q = state.query.toLowerCase().trim();
+    var filt = state.eqFilter || "all";
+
     var list = state.data.exercises.filter(function(e){
+      if(filt !== "all" && e.eq !== filt) return false;
       return !q || (e.name+" "+e.gear+" "+e.muscle).toLowerCase().indexOf(q) >= 0;
     });
-    var b = '<input class="sl-search" id="sl-q" placeholder="Search exercise or machine…" value="'+esc(state.query)+'" autocomplete="off">';
-    if(!list.length){
-      b += '<div class="sl-empty"><strong>No match</strong>Nothing in your library fits that. Add it from the Exercises tab.</div>';
+
+    var b = '<input class="sl-search" id="sl-q" placeholder="Search exercise, machine or setting…" value="'+esc(state.query)+'" autocomplete="off">';
+
+    b += '<div class="sl-chips">';
+    EQ.forEach(function(pair){
+      b += '<button class="sl-chip" data-act="eqfilter" data-eq="'+pair[0]+'" data-on="'+
+           (filt===pair[0]?"1":"0")+'">'+pair[1]+'</button>';
+    });
+    b += '</div>';
+
+    /* What you've actually been doing beats an alphabetical list. */
+    if(!q && filt === "all"){
+      var rec = recentExercises(6);
+      if(rec.length){
+        b += '<div class="sl-libgroup">Recent</div>';
+        rec.forEach(function(e){ b += pickRow(e); });
+      }
     }
+
+    if(!list.length){
+      b += '<div class="sl-empty"><strong>No match</strong>Nothing fits that. Try a different word, or add it yourself from the Exercises tab.</div>';
+    }
+
     var lastMuscle = "";
     list.forEach(function(e){
       if(e.muscle !== lastMuscle){ b += '<div class="sl-libgroup">'+esc(e.muscle)+'</div>'; lastMuscle = e.muscle; }
-      var ss = sessionsFor(e.id);
-      b += '<button class="sl-pick" data-act="choose" data-id="'+e.id+'">';
-      b += '<div><div class="sl-pick-name">'+esc(e.name)+'</div><div class="sl-pick-gear">'+esc(e.gear)+'</div></div>';
-      b += ss.length
-        ? '<div class="sl-pick-last">'+wTxt(topWeight(ss[0]))+'<small>'+agoText(ss[0].date)+'</small></div>'
-        : '<div class="sl-pick-last" style="color:var(--steel-dim)">—<small>New</small></div>';
-      b += '</button>';
+      b += pickRow(e);
     });
+
     openSheet("Pick an exercise", b, "Cancel");
+
     var qi = document.getElementById("sl-q");
     qi.addEventListener("input", function(){
       state.query = qi.value;
@@ -1175,8 +1519,9 @@
     /* last time */
     b += '<div class="sl-lasttime">';
     if(prev){
-      b += '<div class="sl-lasttime-label"><span>Last time</span><span>'+agoText(prev.date)+'</span></div>';
-      b += '<div class="sl-lasttime-load">'+(topWeight(prev)>0?topWeight(prev):'BW')+'<small>'+(topWeight(prev)>0?'lb':'')+'</small></div>';
+      var pw = hardest(prev, e);
+      b += '<div class="sl-lasttime-label"><span>'+(e.assist?'Last time · assistance':'Last time')+'</span><span>'+agoText(prev.date)+'</span></div>';
+      b += '<div class="sl-lasttime-load">'+(pw>0?pw:'BW')+'<small>'+(pw>0?unitLabel(e):'')+'</small></div>';
       b += '<div class="sl-sets">';
       prev.sets.forEach(function(st){
         b += '<div class="sl-set-chip">'+(st.w>0?st.w:'BW')+'<span> × </span>'+st.r+'</div>';
@@ -1192,12 +1537,12 @@
     /* THE STACK */
     if(prev){
       var chron = sessionsFor(e.id).filter(function(s){ return s.date !== state.date; }).slice(0,7).reverse();
-      var weights = chron.map(topWeight);
+      var weights = chron.map(function(s){ return hardest(s, e); });
       var mx = Math.max.apply(null, weights.concat([r.next]));
       b += '<div class="sl-stack"><div class="sl-eyebrow">The stack · last '+chron.length+' session'+(chron.length>1?'s':'')+'</div>';
       b += '<div class="sl-stack-rail">';
       chron.forEach(function(s,i){
-        var w = topWeight(s);
+        var w = hardest(s, e);
         var pct = mx>0 ? Math.max(28, Math.round(w/mx*100)) : 40;
         var cur = i===chron.length-1;
         b += '<div class="sl-plate-row">';
@@ -1215,18 +1560,25 @@
       b += '</div>';
 
       if(r.ready){
-        b += '<div class="sl-cue"><div class="sl-cue-mark">↑</div><div class="sl-cue-text">You hit <b>'+e.target+
-             ' reps on every working set</b> at '+wTxt(r.weight)+'. Add the next plate — go for <b>'+r.next+' lb</b> today.</div></div>';
+        b += '<div class="sl-cue"><div class="sl-cue-mark">'+(r.assist?'↓':'↑')+'</div><div class="sl-cue-text">You hit <b>'+e.target+
+             ' reps on every working set</b> at '+r.weight+' '+unitLabel(e)+'. '+
+             (r.assist
+               ? 'Take the help down — go for <b>'+r.next+' lb of assistance</b> today.'
+               : 'Add the next plate — go for <b>'+r.next+' '+unitLabel(e)+'</b> today.')+
+             '</div></div>';
       } else {
         b += '<div class="sl-cue" data-tone="hold"><div class="sl-cue-mark">=</div><div class="sl-cue-text">Stay at <b>'+
-             wTxt(r.weight)+'</b>. Once every working set reaches <b>'+e.target+' reps</b>, the weight goes up.</div></div>';
+             r.weight+' '+unitLabel(e)+'</b>. Once every working set reaches <b>'+e.target+' reps</b>, '+
+             (r.assist?'the assistance comes down':'the weight goes up')+'.</div></div>';
       }
       b += '</div>';
     }
 
     /* set entry */
     b += '<div class="sl-eyebrow">Today\'s sets</div>';
-    b += '<div class="sl-unitrow"><div></div><div class="sl-unitlabel">Weight (lb)</div><div class="sl-unitlabel">Reps</div><div></div></div>';
+    b += '<div class="sl-unitrow"><div></div><div class="sl-unitlabel">'+
+         (e.assist ? 'Assistance (lb)' : (e.perSide ? 'Weight (lb per side)' : 'Weight (lb)'))+
+         '</div><div class="sl-unitlabel">Reps</div><div></div></div>';
     state.draft.sets.forEach(function(s,i){
       b += '<div class="sl-setrow">';
       b += '<div class="sl-setno">'+pad(i+1)+'</div>';
@@ -1245,7 +1597,64 @@
     b += '<div style="margin-top:12px"><button class="sl-btn" data-act="savelog">Save to '+
          (state.date===todayISO()?'today':shortDate(state.date))+'</button></div>';
 
-    openSheet(esc(e.name), b, "Cancel");
+    openSheet(esc(e.name)+'<div class="sl-sheet-sub">'+esc(e.gear)+'</div>', b, "Cancel");
+  }
+
+  /* Calendar. Days you trained are marked, so this doubles as a consistency view —
+     you can see the gaps as well as jump to a date. */
+  function openCalendar(){
+    var cm = state.calMonth || state.date.slice(0,7);
+    var y = +cm.slice(0,4), m = +cm.slice(5,7) - 1;
+    var startDow = new Date(y, m, 1).getDay();
+    var dim = new Date(y, m + 1, 0).getDate();
+    var today = todayISO();
+    var thisMonth = today.slice(0,7);
+
+    var trained = {};
+    state.data.sessions.forEach(function(s){
+      trained[s.date] = (trained[s.date] || 0) + s.sets.length;
+    });
+
+    var b = '<div class="sl-calhead">';
+    b += '<button data-act="calshift" data-n="-1" aria-label="Previous month">&#9664;</button>';
+    b += '<div class="sl-calmonth">'+MONFULL[m]+' '+y+'</div>';
+    b += '<button data-act="calshift" data-n="1" aria-label="Next month"'+
+         (cm >= thisMonth ? ' disabled' : '')+'>&#9654;</button>';
+    b += '</div>';
+
+    b += '<div class="sl-calgrid">';
+    ["S","M","T","W","T","F","S"].forEach(function(d){
+      b += '<div class="sl-caldow">'+d+'</div>';
+    });
+    for(var i = 0; i < startDow; i++) b += '<div></div>';
+
+    var daysTrained = 0, setsThisMonth = 0;
+    for(var d = 1; d <= dim; d++){
+      var iso = y+"-"+pad(m+1)+"-"+pad(d);
+      var future = iso > today;
+      var count = trained[iso] || 0;
+      if(count){ daysTrained++; setsThisMonth += count; }
+      b += '<button class="sl-calday" data-act="calpick" data-date="'+iso+'"'+
+           (future ? ' disabled' : '')+
+           ' data-sel="'+(iso === state.date ? "1" : "0")+'"'+
+           ' data-today="'+(iso === today ? "1" : "0")+'"'+
+           ' data-has="'+(count ? "1" : "0")+'">'+d+
+           (count ? '<i></i>' : '')+'</button>';
+    }
+    b += '</div>';
+
+    b += '<div class="sl-calstat">';
+    b += daysTrained
+      ? '<b>'+daysTrained+'</b> day'+(daysTrained>1?'s':'')+' trained in '+MONFULL[m]+
+        ' &nbsp;·&nbsp; <b>'+setsThisMonth+'</b> sets'
+      : 'Nothing logged in '+MONFULL[m]+' yet';
+    b += '</div>';
+
+    if(state.date !== today){
+      b += '<div style="margin-top:16px"><button class="sl-btn" data-act="calpick" data-date="'+today+'">Back to today</button></div>';
+    }
+
+    openSheet("Pick a date", b, "Close");
   }
 
   function openExerciseForm(id){
@@ -1255,7 +1664,7 @@
     b += '<div class="sl-field"><label>Machine or equipment</label><input id="f-gear" value="'+esc(e?e.gear:'')+'" placeholder="e.g. Cable · rope"></div>';
     b += '<div class="sl-hint">Note the exact attachment or seat setting — a rope pushdown and a bar pushdown are not the same lift.</div>';
     b += '<div class="sl-field"><label>Muscle group</label><select id="f-muscle">';
-    ["Chest","Back","Legs","Shoulders","Arms","Core"].forEach(function(m){
+    ["Chest","Back","Shoulders","Arms · Triceps","Arms · Biceps","Legs","Core"].forEach(function(m){
       b += '<option'+(e&&e.muscle===m?' selected':'')+'>'+m+'</option>';
     });
     b += '</select></div>';
@@ -1299,8 +1708,25 @@
     if(tab){ state.tab = tab; state.histId = null; render(); return; }
 
     if(act==="day"){ state.date = shiftISO(state.date, +t.getAttribute("data-n")); render(); return; }
+    if(act==="cal"){ state.calMonth = state.date.slice(0,7); openCalendar(); return; }
+    if(act==="calshift"){
+      var cy = +state.calMonth.slice(0,4), cmo = +state.calMonth.slice(5,7) - 1 + (+t.getAttribute("data-n"));
+      var nd = new Date(cy, cmo, 1);
+      state.calMonth = nd.getFullYear()+"-"+pad(nd.getMonth()+1);
+      openCalendar();
+      return;
+    }
+    if(act==="calpick"){
+      state.date = t.getAttribute("data-date");
+      state.calMonth = state.date.slice(0,7);
+      closeSheet();
+      render();
+      return;
+    }
     if(act==="close"){ closeSheet(); return; }
     if(act==="pick"){ state.query=""; openPicker(); return; }
+    if(act==="eqfilter"){ state.eqFilter = t.getAttribute("data-eq"); openPicker(); return; }
+    if(act==="libfilter"){ state.libFilter = t.getAttribute("data-eq"); render(); return; }
     if(act==="choose"){ openLogger(t.getAttribute("data-id")); return; }
     if(act==="hist"){ state.histId = t.getAttribute("data-id"); render(); return; }
     if(act==="histback"){ state.histId = null; render(); return; }
@@ -1501,13 +1927,58 @@
     state.persisted = false;
   }
 
+  var LIB_VERSION = 2;
+
+  /* Fold the new catalogue into an existing install without disturbing anything
+     already logged. Matching is by name, so an exercise you have history on keeps
+     its id and its sessions; only genuinely new entries get appended. */
+  function migrateLibrary(data){
+    if(data.meta && data.meta.libVersion >= LIB_VERSION) return data;
+
+    var have = {};
+    data.exercises.forEach(function(e){ have[e.name.toLowerCase()] = e; });
+
+    var used = {};
+    data.sessions.forEach(function(s){ used[s.exerciseId] = 1; });
+
+    var added = 0;
+    seed().forEach(function(fresh){
+      var match = have[fresh.name.toLowerCase()];
+      if(match){
+        /* carry over the fields the old library never had */
+        if(match.eq === undefined) match.eq = fresh.eq;
+        if(match.perSide === undefined) match.perSide = fresh.perSide;
+        if(match.assist === undefined) match.assist = fresh.assist;
+        if(!match.gear || match.gear === "Free weight") match.gear = fresh.gear;
+        return;
+      }
+      fresh.id = "n" + LIB_VERSION + "_" + added;
+      data.exercises.push(fresh);
+      added++;
+    });
+
+    /* Old barbell entries aren't available at Planet Fitness. Drop the untouched
+       ones; keep any you actually logged, because that history is real. */
+    data.exercises = data.exercises.filter(function(e){
+      var stale = /^(Barbell (squat|bench press|row)|Romanian deadlift|Hip thrust|Pull-up|Tricep dip|Calf raise|Ab crunch|Machine row|Cable curl|Preacher curl|Shoulder press|Chest press|Cable fly|Lateral raise|Rear delt fly|Seated leg curl|Leg extension|Leg press|Hack squat|Face pull|Cable crunch|Cable lateral raise|Overhead tricep extension|Straight-arm pulldown|Seated cable row|Lat pulldown|Hanging leg raise|Dumbbell .*|Incline chest press|Pec deck fly|Tricep pushdown|Hammer curl|Push-up|Plank)$/.test(e.name);
+      var isOldId = /^x\d+$/.test(e.id) && e.eq === undefined;
+      return used[e.id] || !(stale && isOldId);
+    });
+
+    data.meta = data.meta || {};
+    data.meta.libVersion = LIB_VERSION;
+    return data;
+  }
+
   load().then(function(saved){
     if(saved && saved.exercises && saved.exercises.length){
       state.data = saved;
       if(!state.data.sessions) state.data.sessions = [];
       if(!state.data.meta) state.data.meta = { lastBackup: null };
+      state.data = migrateLibrary(state.data);
+      save();
     } else {
-      state.data = { exercises: seed(), sessions: [], meta: { lastBackup: null } };
+      state.data = { exercises: seed(), sessions: [], meta: { lastBackup: null, libVersion: LIB_VERSION } };
       save();
     }
     document.getElementById("sl-boot").classList.add("sl-hide");
