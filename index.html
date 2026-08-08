@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Strength Log</title>
+<meta name="description" content="A personal strength-training log: what you lifted, when, and when to add weight.">
+<meta name="theme-color" content="#141719">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Strength Log">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin:0;
+    padding:0;
+    background:#141719;
+    /* keep content clear of notches and the home bar */
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  body { -webkit-text-size-adjust:100%; }
+</style>
+</head>
+<body>
+<style>
+  :root{
+    --iron:#141719;
+    --plate:#1D2226;
+    --plate-2:#252B30;
+    --knurl:#333B41;
+    --chalk:#EDEFEC;
+    --steel:#8B959C;
+    --steel-dim:#5E686F;
+    --amber:#F0B429;
+    --amber-dim:#6B5216;
+    --rust:#B4442E;
+    --display:"Barlow Condensed","Oswald","Arial Narrow",sans-serif;
+    --body:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono","SF Mono",Menlo,monospace;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+  #sl-app{
+    font-family:var(--body);
+    background:var(--iron);
+    color:var(--chalk);
+    min-height:100vh;
+    max-width:560px;
+    margin:0 auto;
+    position:relative;
+    overflow-x:hidden;
+  }
+  #sl-app button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  #sl-app input, #sl-app select{font-family:inherit;}
+  #sl-app :focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+
+  /* ---------- header ---------- */
+  .sl-top{
+    padding:20px 18px 0;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .sl-wordmark{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    line-height:1;
+    margin:0;
+  }
+  .sl-wordmark em{font-style:normal;color:var(--amber);}
+  .sl-today-date{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--steel-dim);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  /* ---------- tabs ---------- */
+  .sl-tabs{
+    display:flex;
+    gap:0;
+    margin:16px 18px 0;
+    border-bottom:1px solid var(--knurl);
+  }
+  .sl-tab{
+    font-family:var(--display);
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    padding:8px 0 10px;
+    margin-right:26px;
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+    transition:color .15s ease;
+  }
+  .sl-tab[data-on="1"]{color:var(--chalk);border-bottom-color:var(--amber);}
+
+  .sl-page{padding:0 18px 96px;}
+  .sl-hide{display:none !important;}
+
+  /* ---------- shared bits ---------- */
+  .sl-eyebrow{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    margin:26px 0 10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .sl-eyebrow::after{content:"";flex:1;height:1px;background:var(--knurl);}
+
+  .sl-card{
+    background:var(--plate);
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    padding:14px 15px;
+    margin-bottom:10px;
+  }
+
+  .sl-btn{
+    display:block;
+    width:100%;
+    background:var(--amber);
+    color:#171310;
+    font-family:var(--display);
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:15px;
+    border-radius:3px;
+  }
+  .sl-btn:disabled{background:var(--plate-2);color:var(--steel-dim);cursor:not-allowed;}
+  .sl-btn-ghost{
+    display:block;
+    width:100%;
+    border:1px dashed var(--knurl);
+    color:var(--steel);
+    font-family:var(--display);
+    font-size:17px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:14px;
+    border-radius:3px;
+    background:transparent;
+  }
+  .sl-btn-ghost:hover{color:var(--chalk);border-color:var(--steel-dim);}
+  .sl-btn-quiet{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    padding:8px 10px;
+    border:1px solid var(--knurl);
+    border-radius:3px;
+  }
+  .sl-btn-quiet:hover{color:var(--chalk);}
+
+  .sl-empty{
+    text-align:center;
+    padding:34px 14px;
+    color:var(--steel-dim);
+    font-size:14px;
+    line-height:1.6;
+  }
+  .sl-empty strong{
+    display:block;
+    font-family:var(--display);
+    font-size:22px;
+    font-weight:600;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--steel);
+    margin-bottom:6px;
+  }
+
+  /* ---------- date strip ---------- */
+  .sl-datestrip{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:18px;
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    background:var(--plate);
+  }
+  .sl-datestrip button{
+    padding:12px 16px;
+    color:var(--steel);
+    font-size:16px;
+    line-height:1;
+  }
+  .sl-datestrip button:hover:not(:disabled){color:var(--amber);}
+  .sl-datestrip button:disabled{color:#2C3237;cursor:not-allowed;}
+  .sl-datestrip-mid{text-align:center;padding:9px 4px;flex:1;}
+  .sl-datestrip-day{
+    font-family:var(--display);
+    font-size:19px;
+    font-weight:600;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    line-height:1.15;
+  }
+  .sl-datestrip-sub{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.10em;
+    color:var(--steel-dim);
+    text-transform:uppercase;
+  }
+
+  .sl-daystat{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    color:var(--steel-dim);
+    text-transform:uppercase;
+    margin:12px 0 4px;
+  }
+  .sl-daystat b{color:var(--chalk);font-weight:500;}
+
+  /* ---------- logged entry ---------- */
+  .sl-entry{
+    background:var(--plate);
+    border:1px solid var(--knurl);
+    border-left:2px solid var(--knurl);
+    border-radius:3px;
+    padding:13px 14px;
+    margin-bottom:9px;
+  }
+  .sl-entry[data-pr="1"]{border-left-color:var(--amber);}
+  .sl-entry-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .sl-entry-name{
+    font-family:var(--display);
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    line-height:1.1;
+  }
+  .sl-entry-gear{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.08em;
+    color:var(--steel-dim);
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .sl-sets{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;}
+  .sl-set-chip{
+    font-family:var(--mono);
+    font-size:12px;
+    background:var(--plate-2);
+    border:1px solid var(--knurl);
+    border-radius:2px;
+    padding:5px 8px;
+    color:var(--chalk);
+    letter-spacing:.02em;
+  }
+  .sl-set-chip span{color:var(--steel-dim);}
+  .sl-pr-flag{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:9px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--amber);
+    border:1px solid var(--amber-dim);
+    border-radius:2px;
+    padding:3px 6px;
+    margin-top:10px;
+  }
+  .sl-icon-btn{
+    color:var(--steel-dim);
+    font-family:var(--mono);
+    font-size:11px;
+    padding:4px 6px;
+    letter-spacing:.06em;
+    flex-shrink:0;
+  }
+  .sl-icon-btn:hover{color:var(--rust);}
+
+  /* ---------- sheet ---------- */
+  .sl-sheet{
+    position:fixed;
+    inset:0;
+    background:var(--iron);
+    z-index:50;
+    overflow-y:auto;
+    max-width:560px;
+    margin:0 auto;
+    animation:sl-rise .2s ease-out;
+  }
+  @keyframes sl-rise{from{transform:translateY(14px);opacity:0;}to{transform:none;opacity:1;}}
+  @media (prefers-reduced-motion:reduce){
+    .sl-sheet{animation:none;}
+    #sl-app *{transition:none !important;}
+  }
+  .sl-sheet-bar{
+    position:sticky;
+    top:0;
+    background:var(--iron);
+    border-bottom:1px solid var(--knurl);
+    padding:14px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    z-index:2;
+  }
+  .sl-sheet-title{
+    font-family:var(--display);
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    line-height:1.1;
+  }
+  .sl-sheet-body{padding:0 18px 40px;}
+
+  /* ---------- search + picker ---------- */
+  .sl-search{
+    width:100%;
+    background:var(--plate);
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    color:var(--chalk);
+    padding:13px 14px;
+    font-size:15px;
+    margin-top:16px;
+  }
+  .sl-search::placeholder{color:var(--steel-dim);}
+
+  .sl-pick{
+    width:100%;
+    text-align:left;
+    padding:13px 2px;
+    border-bottom:1px solid var(--knurl);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .sl-pick:hover .sl-pick-name{color:var(--amber);}
+  .sl-pick-name{
+    font-family:var(--display);
+    font-size:19px;
+    font-weight:500;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    line-height:1.15;
+    transition:color .12s ease;
+  }
+  .sl-pick-gear{
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--steel-dim);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    margin-top:3px;
+  }
+  .sl-pick-last{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--steel);
+    text-align:right;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .sl-pick-last small{display:block;font-size:9px;color:var(--steel-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+
+  /* ---------- last time panel ---------- */
+  .sl-lasttime{
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    background:var(--plate);
+    padding:15px;
+    margin-top:16px;
+  }
+  .sl-lasttime-label{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:9px;
+  }
+  .sl-lasttime-load{
+    font-family:var(--display);
+    font-size:44px;
+    font-weight:700;
+    line-height:.9;
+    letter-spacing:.01em;
+  }
+  .sl-lasttime-load small{
+    font-family:var(--mono);
+    font-size:13px;
+    font-weight:400;
+    letter-spacing:.08em;
+    color:var(--steel);
+    margin-left:6px;
+    text-transform:uppercase;
+  }
+
+  /* ---------- THE STACK (signature) ---------- */
+  .sl-stack{margin-top:14px;}
+  .sl-stack-rail{
+    display:flex;
+    flex-direction:column-reverse;
+    gap:3px;
+    padding:10px 0 12px;
+    position:relative;
+  }
+  .sl-plate-row{display:flex;align-items:center;gap:10px;}
+  .sl-plate{
+    height:20px;
+    border-radius:2px;
+    background:linear-gradient(180deg,var(--plate-2),#1A1F23);
+    border:1px solid var(--knurl);
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    padding-right:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--steel);
+    min-width:56px;
+    flex-shrink:0;
+    transition:all .2s ease;
+  }
+  .sl-plate[data-cur="1"]{
+    background:linear-gradient(180deg,#3A3126,#241D14);
+    border-color:var(--amber-dim);
+    color:var(--chalk);
+    height:26px;
+    font-size:13px;
+  }
+  .sl-plate[data-next="1"]{
+    background:transparent;
+    border:1px dashed var(--amber);
+    color:var(--amber);
+    height:26px;
+    font-size:13px;
+  }
+  .sl-plate-tag{
+    font-family:var(--mono);
+    font-size:9px;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    white-space:nowrap;
+  }
+  .sl-plate-tag[data-hot="1"]{color:var(--amber);}
+
+  .sl-cue{
+    border:1px solid var(--amber-dim);
+    background:rgba(240,180,41,.06);
+    border-radius:3px;
+    padding:12px 14px;
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .sl-cue-mark{
+    font-family:var(--display);
+    font-size:26px;
+    font-weight:700;
+    color:var(--amber);
+    line-height:1;
+  }
+  .sl-cue-text{font-size:13px;line-height:1.45;color:var(--chalk);}
+  .sl-cue-text b{color:var(--amber);font-weight:600;}
+  .sl-cue[data-tone="hold"]{border-color:var(--knurl);background:transparent;}
+  .sl-cue[data-tone="hold"] .sl-cue-mark{color:var(--steel-dim);}
+  .sl-cue[data-tone="hold"] .sl-cue-text{color:var(--steel);}
+  .sl-cue[data-tone="hold"] .sl-cue-text b{color:var(--chalk);}
+
+  /* ---------- set rows ---------- */
+  .sl-setrow{
+    display:grid;
+    grid-template-columns:34px 1fr 1fr 32px;
+    gap:8px;
+    align-items:center;
+    margin-bottom:9px;
+  }
+  .sl-setno{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--steel-dim);
+    letter-spacing:.06em;
+  }
+  .sl-stepper{
+    display:flex;
+    align-items:center;
+    background:var(--plate);
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .sl-stepper button{
+    padding:11px 0;
+    width:32px;
+    flex-shrink:0;
+    color:var(--steel);
+    font-size:17px;
+    line-height:1;
+  }
+  .sl-stepper button:hover{color:var(--amber);background:var(--plate-2);}
+  .sl-stepper input{
+    flex:1;
+    min-width:0;
+    width:100%;
+    background:transparent;
+    border:none;
+    color:var(--chalk);
+    font-family:var(--mono);
+    font-size:16px;
+    text-align:center;
+    padding:11px 0;
+    -moz-appearance:textfield;
+  }
+  .sl-stepper input::-webkit-outer-spin-button,
+  .sl-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .sl-unitrow{
+    display:grid;
+    grid-template-columns:34px 1fr 1fr 32px;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .sl-unitlabel{
+    font-family:var(--mono);
+    font-size:9px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    text-align:center;
+  }
+
+  /* ---------- history ---------- */
+  .sl-spark{width:100%;height:56px;display:block;margin-top:12px;}
+  .sl-hist-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid var(--knurl);
+  }
+  .sl-hist-date{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--steel-dim);
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    white-space:nowrap;
+    padding-top:3px;
+  }
+  .sl-hist-sets{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;}
+
+  /* ---------- library ---------- */
+  .sl-libgroup{
+    font-family:var(--display);
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin:24px 0 6px;
+  }
+  .sl-lib-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid var(--knurl);
+  }
+  .sl-lib-meta{
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--steel-dim);
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    margin-top:3px;
+  }
+
+  .sl-field{margin-bottom:14px;}
+  .sl-field label{
+    display:block;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    margin-bottom:6px;
+  }
+  .sl-field input, .sl-field select{
+    width:100%;
+    background:var(--plate);
+    border:1px solid var(--knurl);
+    border-radius:3px;
+    color:var(--chalk);
+    padding:12px 13px;
+    font-size:15px;
+  }
+  .sl-field-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .sl-hint{font-size:12px;color:var(--steel-dim);line-height:1.5;margin:-6px 0 14px;}
+
+  .sl-toast{
+    position:fixed;
+    left:50%;
+    bottom:26px;
+    transform:translateX(-50%);
+    background:var(--amber);
+    color:#171310;
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:11px 18px;
+    border-radius:3px;
+    z-index:99;
+    white-space:nowrap;
+  }
+
+  .sl-datafoot{margin-top:34px;padding-top:18px;border-top:1px solid var(--knurl);display:flex;gap:8px;flex-wrap:wrap;}
+
+  .sl-loading{
+    padding:70px 20px;
+    text-align:center;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+  }
+</style>
+
+<div id="sl-app">
+  <div class="sl-loading" id="sl-boot">Loading your log…</div>
+  <div id="sl-shell" class="sl-hide">
+    <div class="sl-top">
+      <h1 class="sl-wordmark">Strength<em>·</em>Log</h1>
+      <div class="sl-today-date" id="sl-clock"></div>
+    </div>
+    <nav class="sl-tabs">
+      <button class="sl-tab" data-tab="today" data-on="1">Today</button>
+      <button class="sl-tab" data-tab="history">History</button>
+      <button class="sl-tab" data-tab="library">Exercises</button>
+    </nav>
+    <div class="sl-page" id="sl-page"></div>
+  </div>
+  <div id="sl-sheet-mount"></div>
+  <div id="sl-toast-mount"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY = "strengthlog:v1";
+  var app = document.getElementById("sl-app");
+  var pageEl = document.getElementById("sl-page");
+  var sheetMount = document.getElementById("sl-sheet-mount");
+  var toastMount = document.getElementById("sl-toast-mount");
+
+  var state = {
+    tab: "today",
+    date: todayISO(),
+    data: { exercises: [], sessions: [] },
+    draft: null,
+    histId: null,
+    query: "",
+    saving: false
+  };
+
+  /* ============ seed library ============ */
+  function seed(){
+    var raw = [
+      ["Chest","Chest press","Machine",10,5],
+      ["Chest","Incline chest press","Machine",10,5],
+      ["Chest","Pec deck fly","Machine",12,5],
+      ["Chest","Cable fly","Cable · D-handles",12,5],
+      ["Chest","Dumbbell bench press","Dumbbells",10,5],
+      ["Chest","Barbell bench press","Barbell",8,5],
+
+      ["Back","Lat pulldown","Cable · wide bar",10,5],
+      ["Back","Seated cable row","Cable · V-handle",10,5],
+      ["Back","Straight-arm pulldown","Cable · straight bar",12,5],
+      ["Back","Machine row","Machine",10,5],
+      ["Back","Barbell row","Barbell",8,5],
+      ["Back","Pull-up","Bodyweight",8,5],
+
+      ["Legs","Leg press","Machine",10,10],
+      ["Legs","Hack squat","Machine",8,10],
+      ["Legs","Leg extension","Machine",12,10],
+      ["Legs","Seated leg curl","Machine",12,10],
+      ["Legs","Barbell squat","Barbell",8,10],
+      ["Legs","Romanian deadlift","Barbell",8,10],
+      ["Legs","Hip thrust","Barbell",10,10],
+      ["Legs","Calf raise","Machine",15,10],
+
+      ["Shoulders","Shoulder press","Machine",10,5],
+      ["Shoulders","Dumbbell shoulder press","Dumbbells",10,5],
+      ["Shoulders","Lateral raise","Dumbbells",12,5],
+      ["Shoulders","Cable lateral raise","Cable · D-handle",12,5],
+      ["Shoulders","Rear delt fly","Machine",12,5],
+      ["Shoulders","Face pull","Cable · rope",15,5],
+
+      ["Arms","Tricep pushdown","Cable · rope",10,5],
+      ["Arms","Overhead tricep extension","Cable · rope",12,5],
+      ["Arms","Tricep dip","Machine",10,5],
+      ["Arms","Dumbbell bicep curl","Dumbbells",10,5],
+      ["Arms","Cable curl","Cable · EZ bar",12,5],
+      ["Arms","Preacher curl","Machine",10,5],
+      ["Arms","Hammer curl","Dumbbells",10,5],
+
+      ["Core","Cable crunch","Cable · rope",15,5],
+      ["Core","Ab crunch","Machine",15,5],
+      ["Core","Hanging leg raise","Bodyweight",12,5]
+    ];
+    return raw.map(function(r,i){
+      return { id:"x"+i, muscle:r[0], name:r[1], gear:r[2], target:r[3], step:r[4] };
+    });
+  }
+
+  /* ============ storage ============
+     Two backends. Inside Claude, the host store is used. Standing on its own
+     in a browser, the app falls back to the browser's own store. Writes go to
+     both when possible, so the log survives either way. */
+  function hostStore(){ return !!(window.storage && window.storage.get); }
+  function safeParse(txt){
+    if(!txt) return null;
+    try { return JSON.parse(txt); } catch(e){ return null; }
+  }
+  function localGet(){
+    try { return window.localStorage.getItem(KEY); } catch(e){ return null; }
+  }
+  function localSet(txt){
+    try { window.localStorage.setItem(KEY, txt); return true; } catch(e){ return false; }
+  }
+
+  function load(){
+    if(hostStore()){
+      return window.storage.get(KEY)
+        .then(function(r){ return (r && r.value) ? safeParse(r.value) : safeParse(localGet()); })
+        .catch(function(){ return safeParse(localGet()); });
+    }
+    return Promise.resolve(safeParse(localGet()));
+  }
+
+  function save(){
+    var txt = JSON.stringify(state.data);
+    var wroteLocal = localSet(txt);
+    if(hostStore()){
+      return window.storage.set(KEY, txt).catch(function(){
+        if(!wroteLocal) toast("Couldn't save — export a backup");
+      });
+    }
+    if(!wroteLocal) toast("Couldn't save — export a backup");
+    return Promise.resolve();
+  }
+
+  /* ============ dates ============ */
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  }
+  function pad(n){ return n<10 ? "0"+n : ""+n; }
+  function parseISO(s){
+    var p = s.split("-");
+    return new Date(+p[0], +p[1]-1, +p[2]);
+  }
+  function shiftISO(s,n){
+    var d = parseISO(s); d.setDate(d.getDate()+n);
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  }
+  var DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function dayName(s){ return DOW[parseISO(s).getDay()]; }
+  function shortDate(s){ var d=parseISO(s); return MON[d.getMonth()]+" "+d.getDate(); }
+  function daysAgo(s){
+    var ms = parseISO(todayISO()) - parseISO(s);
+    return Math.round(ms/86400000);
+  }
+  function agoText(s){
+    var n = daysAgo(s);
+    if(n===0) return "Earlier today";
+    if(n===1) return "Yesterday";
+    if(n<7) return n+" days ago";
+    if(n<14) return "Last week";
+    return Math.floor(n/7)+" weeks ago";
+  }
+
+  /* ============ lookups ============ */
+  function ex(id){
+    for(var i=0;i<state.data.exercises.length;i++){
+      if(state.data.exercises[i].id===id) return state.data.exercises[i];
+    }
+    return null;
+  }
+  function sessionsFor(id){
+    return state.data.sessions.filter(function(s){ return s.exerciseId===id; })
+      .sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+  }
+  function sessionsOn(date){
+    return state.data.sessions.filter(function(s){ return s.date===date; });
+  }
+  function topSet(sess){
+    var best = sess.sets[0];
+    for(var i=1;i<sess.sets.length;i++){
+      if(sess.sets[i].w > best.w) best = sess.sets[i];
+    }
+    return best;
+  }
+  function topWeight(sess){ return topSet(sess).w; }
+  function volume(sess){
+    return sess.sets.reduce(function(t,s){ return t + s.w*s.r; },0);
+  }
+  function wTxt(w){ return w>0 ? w+" lb" : "BW"; }
+
+  /* the progressive-overload rule */
+  function readiness(exercise, prev){
+    if(!prev) return null;
+    var w = topWeight(prev);
+    var atTop = prev.sets.filter(function(s){ return s.w >= w; });
+    var cleared = atTop.length >= 2 && atTop.every(function(s){ return s.r >= exercise.target; });
+    return {
+      ready: cleared,
+      weight: w,
+      next: w + exercise.step,
+      target: exercise.target
+    };
+  }
+
+  /* ============ render ============ */
+  function render(){
+    document.getElementById("sl-clock").textContent =
+      dayName(todayISO()).slice(0,3)+" "+shortDate(todayISO());
+    var tabs = app.querySelectorAll(".sl-tab");
+    for(var i=0;i<tabs.length;i++){
+      tabs[i].setAttribute("data-on", tabs[i].getAttribute("data-tab")===state.tab ? "1" : "0");
+    }
+    if(state.tab==="today") renderToday();
+    else if(state.tab==="history") renderHistory();
+    else renderLibrary();
+  }
+
+  function renderToday(){
+    var d = state.date;
+    var todays = sessionsOn(d);
+    var isToday = d===todayISO();
+    var sets = todays.reduce(function(t,s){ return t+s.sets.length; },0);
+    var vol = todays.reduce(function(t,s){ return t+volume(s); },0);
+
+    var h = '';
+    h += '<div class="sl-datestrip">';
+    h += '<button data-act="day" data-n="-1" aria-label="Previous day">&#9664;</button>';
+    h += '<div class="sl-datestrip-mid"><div class="sl-datestrip-day">'+(isToday?"Today":dayName(d))+'</div>';
+    h += '<div class="sl-datestrip-sub">'+shortDate(d)+'</div></div>';
+    h += '<button data-act="day" data-n="1" aria-label="Next day"'+(isToday?' disabled':'')+'>&#9654;</button>';
+    h += '</div>';
+
+    if(todays.length){
+      h += '<div class="sl-daystat"><b>'+todays.length+'</b> exercise'+(todays.length>1?'s':'')+
+           ' &nbsp;·&nbsp; <b>'+sets+'</b> sets &nbsp;·&nbsp; <b>'+vol.toLocaleString()+'</b> lb moved</div>';
+      h += '<div class="sl-eyebrow">Logged</div>';
+      todays.forEach(function(s){
+        var e = ex(s.exerciseId);
+        if(!e) return;
+        var prior = sessionsFor(s.exerciseId).filter(function(p){ return p.date < s.date; });
+        var isPR = prior.length && topWeight(s) > topWeight(prior[0]);
+        h += '<div class="sl-entry" data-pr="'+(isPR?"1":"0")+'">';
+        h += '<div class="sl-entry-head"><div>';
+        h += '<div class="sl-entry-name">'+esc(e.name)+'</div>';
+        h += '<div class="sl-entry-gear">'+esc(e.gear)+'</div>';
+        h += '</div><button class="sl-icon-btn" data-act="del" data-id="'+s.id+'">Remove</button></div>';
+        h += '<div class="sl-sets">';
+        s.sets.forEach(function(st){
+          h += '<div class="sl-set-chip">'+(st.w>0?st.w:'BW')+'<span> × </span>'+st.r+'</div>';
+        });
+        h += '</div>';
+        if(isPR) h += '<div class="sl-pr-flag">↑ Heaviest yet — up from '+topWeight(prior[0])+' lb</div>';
+        h += '</div>';
+      });
+    } else {
+      h += '<div class="sl-empty"><strong>Nothing logged</strong>'+
+           (isToday ? 'Pick an exercise and put the first set down.' : 'No training recorded on this day.')+'</div>';
+    }
+
+    h += '<div style="margin-top:14px"><button class="sl-btn" data-act="pick">+ Log an exercise</button></div>';
+    pageEl.innerHTML = h;
+  }
+
+  function renderHistory(){
+    var trained = state.data.exercises.filter(function(e){
+      return sessionsFor(e.id).length > 0;
+    });
+    if(!trained.length){
+      pageEl.innerHTML = '<div class="sl-empty" style="margin-top:40px"><strong>No history yet</strong>'+
+        'Once you log a session or two, every exercise gets its own record here.</div>';
+      return;
+    }
+    if(state.histId && ex(state.histId)) return renderHistoryDetail(ex(state.histId));
+
+    trained.sort(function(a,b){
+      return sessionsFor(a.id)[0].date < sessionsFor(b.id)[0].date ? 1 : -1;
+    });
+    var h = '<div class="sl-eyebrow">Every exercise you\'ve trained</div>';
+    trained.forEach(function(e){
+      var ss = sessionsFor(e.id);
+      var last = ss[0];
+      h += '<button class="sl-pick" data-act="hist" data-id="'+e.id+'">';
+      h += '<div><div class="sl-pick-name">'+esc(e.name)+'</div>';
+      h += '<div class="sl-pick-gear">'+esc(e.gear)+' · '+ss.length+' session'+(ss.length>1?'s':'')+'</div></div>';
+      h += '<div class="sl-pick-last">'+wTxt(topWeight(last))+'<small>'+agoText(last.date)+'</small></div>';
+      h += '</button>';
+    });
+    pageEl.innerHTML = h;
+  }
+
+  function renderHistoryDetail(e){
+    var ss = sessionsFor(e.id);
+    var chron = ss.slice().reverse();
+    var best = 0, bestDate = "";
+    chron.forEach(function(s){
+      if(topWeight(s) >= best){ best = topWeight(s); bestDate = s.date; }
+    });
+    var first = topWeight(chron[0]);
+    var gain = best - first;
+
+    var h = '<div style="margin-top:18px"><button class="sl-btn-quiet" data-act="histback">← All exercises</button></div>';
+    h += '<div style="margin-top:18px"><div class="sl-entry-name" style="font-size:26px">'+esc(e.name)+'</div>';
+    h += '<div class="sl-entry-gear">'+esc(e.gear)+' · target '+e.target+' reps · steps of '+e.step+' lb</div></div>';
+
+    h += '<div class="sl-eyebrow">Working weight over time</div>';
+    h += spark(chron);
+    h += '<div class="sl-daystat" style="display:flex;gap:18px;flex-wrap:wrap">';
+    h += '<span>Best <b>'+wTxt(best)+'</b> · '+shortDate(bestDate)+'</span>';
+    h += '<span>Started <b>'+wTxt(first)+'</b></span>';
+    if(gain>0) h += '<span style="color:var(--amber)">+'+gain+' lb</span>';
+    h += '</div>';
+
+    h += '<div class="sl-eyebrow">Session by session</div>';
+    ss.forEach(function(s){
+      h += '<div class="sl-hist-row"><div class="sl-hist-date">'+shortDate(s.date)+'</div><div class="sl-hist-sets">';
+      s.sets.forEach(function(st){
+        h += '<div class="sl-set-chip">'+(st.w>0?st.w:'BW')+'<span>×</span>'+st.r+'</div>';
+      });
+      h += '</div></div>';
+    });
+    pageEl.innerHTML = h;
+  }
+
+  function spark(chron){
+    if(chron.length < 2) return '<div class="sl-hint" style="margin-top:10px">One session so far — the line shows up after the second.</div>';
+    var w = 520, hh = 56, pad = 4;
+    var vals = chron.map(topWeight);
+    var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+    if(mx===mn){ mx = mn+1; }
+    var pts = vals.map(function(v,i){
+      var x = pad + i*(w-pad*2)/(vals.length-1);
+      var y = hh-pad - (v-mn)/(mx-mn)*(hh-pad*2);
+      return [x,y];
+    });
+    var d = pts.map(function(p,i){ return (i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1); }).join(" ");
+    var s = '<svg class="sl-spark" viewBox="0 0 '+w+' '+hh+'" preserveAspectRatio="none" aria-hidden="true">';
+    s += '<path d="'+d+'" fill="none" stroke="#F0B429" stroke-width="2" vector-effect="non-scaling-stroke"/>';
+    pts.forEach(function(p,i){
+      var lastOne = i===pts.length-1;
+      s += '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(lastOne?4:2.5)+'" fill="'+(lastOne?"#F0B429":"#5E686F")+'"/>';
+    });
+    s += '</svg>';
+    return s;
+  }
+
+  function renderLibrary(){
+    var groups = {};
+    state.data.exercises.forEach(function(e){
+      (groups[e.muscle] = groups[e.muscle] || []).push(e);
+    });
+    var order = ["Chest","Back","Legs","Shoulders","Arms","Core"];
+    Object.keys(groups).forEach(function(k){ if(order.indexOf(k)<0) order.push(k); });
+
+    var h = '<div style="margin-top:18px"><button class="sl-btn-ghost" data-act="newex">+ Add your own exercise</button></div>';
+    order.forEach(function(m){
+      if(!groups[m]) return;
+      h += '<div class="sl-libgroup">'+esc(m)+'</div>';
+      groups[m].forEach(function(e){
+        var n = sessionsFor(e.id).length;
+        h += '<div class="sl-lib-row"><div>';
+        h += '<div class="sl-pick-name" style="font-size:18px">'+esc(e.name)+'</div>';
+        h += '<div class="sl-lib-meta">'+esc(e.gear)+' · target '+e.target+' reps · +'+e.step+' lb'+
+             (n?' · '+n+' logged':'')+'</div>';
+        h += '</div><button class="sl-btn-quiet" data-act="editex" data-id="'+e.id+'">Edit</button></div>';
+      });
+    });
+
+    h += '<div class="sl-datafoot">';
+    h += '<button class="sl-btn-quiet" data-act="export">Export CSV</button>';
+    h += '<button class="sl-btn-quiet" data-act="exportjson">Export backup</button>';
+    h += '<button class="sl-btn-quiet" data-act="import">Restore backup</button>';
+    h += '<input type="file" id="sl-file" accept="application/json,.json" style="display:none">';
+    h += '</div>';
+    h += '<div class="sl-hint" style="margin-top:12px">Your log is saved in this browser and stays here between sessions. Export a backup now and then — that file is also how you move your history to another phone or browser.</div>';
+    pageEl.innerHTML = h;
+  }
+
+  /* ============ sheets ============ */
+  function closeSheet(){ sheetMount.innerHTML = ""; state.draft = null; state.query = ""; }
+
+  function openSheet(title, bodyHTML, closeLabel){
+    sheetMount.innerHTML =
+      '<div class="sl-sheet" role="dialog" aria-modal="true">'+
+        '<div class="sl-sheet-bar"><div class="sl-sheet-title">'+title+'</div>'+
+        '<button class="sl-btn-quiet" data-act="close">'+(closeLabel||"Close")+'</button></div>'+
+        '<div class="sl-sheet-body">'+bodyHTML+'</div>'+
+      '</div>';
+    sheetMount.querySelector(".sl-sheet").scrollTop = 0;
+  }
+
+  function openPicker(){
+    var q = state.query.toLowerCase();
+    var list = state.data.exercises.filter(function(e){
+      return !q || (e.name+" "+e.gear+" "+e.muscle).toLowerCase().indexOf(q) >= 0;
+    });
+    var b = '<input class="sl-search" id="sl-q" placeholder="Search exercise or machine…" value="'+esc(state.query)+'" autocomplete="off">';
+    if(!list.length){
+      b += '<div class="sl-empty"><strong>No match</strong>Nothing in your library fits that. Add it from the Exercises tab.</div>';
+    }
+    var lastMuscle = "";
+    list.forEach(function(e){
+      if(e.muscle !== lastMuscle){ b += '<div class="sl-libgroup">'+esc(e.muscle)+'</div>'; lastMuscle = e.muscle; }
+      var ss = sessionsFor(e.id);
+      b += '<button class="sl-pick" data-act="choose" data-id="'+e.id+'">';
+      b += '<div><div class="sl-pick-name">'+esc(e.name)+'</div><div class="sl-pick-gear">'+esc(e.gear)+'</div></div>';
+      b += ss.length
+        ? '<div class="sl-pick-last">'+wTxt(topWeight(ss[0]))+'<small>'+agoText(ss[0].date)+'</small></div>'
+        : '<div class="sl-pick-last" style="color:var(--steel-dim)">—<small>New</small></div>';
+      b += '</button>';
+    });
+    openSheet("Pick an exercise", b, "Cancel");
+    var qi = document.getElementById("sl-q");
+    qi.addEventListener("input", function(){
+      state.query = qi.value;
+      var pos = qi.selectionStart;
+      openPicker();
+      var ni = document.getElementById("sl-q");
+      ni.focus(); ni.setSelectionRange(pos,pos);
+    });
+  }
+
+  function openLogger(exerciseId){
+    var e = ex(exerciseId);
+    var hist = sessionsFor(exerciseId).filter(function(s){ return s.date !== state.date; });
+    var prev = hist[0] || null;
+    var r = readiness(e, prev);
+
+    if(!state.draft || state.draft.exerciseId !== exerciseId){
+      var startW = prev ? (r.ready ? r.next : topWeight(prev)) : 0;
+      var startR = prev ? e.target : e.target;
+      state.draft = { exerciseId: exerciseId, sets:[{w:startW, r:startR}] };
+    }
+    drawLogger(e, prev, r);
+  }
+
+  function drawLogger(e, prev, r){
+    var b = '';
+
+    /* last time */
+    b += '<div class="sl-lasttime">';
+    if(prev){
+      b += '<div class="sl-lasttime-label"><span>Last time</span><span>'+agoText(prev.date)+'</span></div>';
+      b += '<div class="sl-lasttime-load">'+(topWeight(prev)>0?topWeight(prev):'BW')+'<small>'+(topWeight(prev)>0?'lb':'')+'</small></div>';
+      b += '<div class="sl-sets">';
+      prev.sets.forEach(function(st){
+        b += '<div class="sl-set-chip">'+(st.w>0?st.w:'BW')+'<span> × </span>'+st.r+'</div>';
+      });
+      b += '</div>';
+    } else {
+      b += '<div class="sl-lasttime-label"><span>First time</span><span>No history</span></div>';
+      b += '<div class="sl-cue-text" style="color:var(--steel)">Pick a weight you can control for '+e.target+
+           ' clean reps. Whatever you log becomes the baseline everything else is measured against.</div>';
+    }
+    b += '</div>';
+
+    /* THE STACK */
+    if(prev){
+      var chron = sessionsFor(e.id).filter(function(s){ return s.date !== state.date; }).slice(0,7).reverse();
+      var weights = chron.map(topWeight);
+      var mx = Math.max.apply(null, weights.concat([r.next]));
+      b += '<div class="sl-stack"><div class="sl-eyebrow">The stack · last '+chron.length+' session'+(chron.length>1?'s':'')+'</div>';
+      b += '<div class="sl-stack-rail">';
+      chron.forEach(function(s,i){
+        var w = topWeight(s);
+        var pct = mx>0 ? Math.max(28, Math.round(w/mx*100)) : 40;
+        var cur = i===chron.length-1;
+        b += '<div class="sl-plate-row">';
+        b += '<div class="sl-plate" style="width:'+pct+'%" data-cur="'+(cur?"1":"0")+'">'+(w>0?w:'BW')+'</div>';
+        b += '<div class="sl-plate-tag"'+(cur?' data-hot="1"':'')+'>'+(cur?'◄ where you left off':shortDate(s.date))+'</div>';
+        b += '</div>';
+      });
+      if(r.ready){
+        var np = mx>0 ? Math.max(30, Math.round(r.next/mx*100)) : 45;
+        b += '<div class="sl-plate-row">';
+        b += '<div class="sl-plate" style="width:'+np+'%" data-next="1">'+r.next+'</div>';
+        b += '<div class="sl-plate-tag" data-hot="1">go here today</div>';
+        b += '</div>';
+      }
+      b += '</div>';
+
+      if(r.ready){
+        b += '<div class="sl-cue"><div class="sl-cue-mark">↑</div><div class="sl-cue-text">You hit <b>'+e.target+
+             ' reps on every working set</b> at '+wTxt(r.weight)+'. Add the next plate — go for <b>'+r.next+' lb</b> today.</div></div>';
+      } else {
+        b += '<div class="sl-cue" data-tone="hold"><div class="sl-cue-mark">=</div><div class="sl-cue-text">Stay at <b>'+
+             wTxt(r.weight)+'</b>. Once every working set reaches <b>'+e.target+' reps</b>, the weight goes up.</div></div>';
+      }
+      b += '</div>';
+    }
+
+    /* set entry */
+    b += '<div class="sl-eyebrow">Today\'s sets</div>';
+    b += '<div class="sl-unitrow"><div></div><div class="sl-unitlabel">Weight (lb)</div><div class="sl-unitlabel">Reps</div><div></div></div>';
+    state.draft.sets.forEach(function(s,i){
+      b += '<div class="sl-setrow">';
+      b += '<div class="sl-setno">'+pad(i+1)+'</div>';
+      b += '<div class="sl-stepper"><button data-act="w" data-i="'+i+'" data-n="-1" aria-label="Less weight">−</button>'+
+           '<input type="number" inputmode="decimal" data-fld="w" data-i="'+i+'" value="'+s.w+'" aria-label="Set '+(i+1)+' weight">'+
+           '<button data-act="w" data-i="'+i+'" data-n="1" aria-label="More weight">+</button></div>';
+      b += '<div class="sl-stepper"><button data-act="r" data-i="'+i+'" data-n="-1" aria-label="Fewer reps">−</button>'+
+           '<input type="number" inputmode="numeric" data-fld="r" data-i="'+i+'" value="'+s.r+'" aria-label="Set '+(i+1)+' reps">'+
+           '<button data-act="r" data-i="'+i+'" data-n="1" aria-label="More reps">+</button></div>';
+      b += state.draft.sets.length>1
+        ? '<button class="sl-icon-btn" data-act="rmset" data-i="'+i+'" aria-label="Remove set '+(i+1)+'">✕</button>'
+        : '<div></div>';
+      b += '</div>';
+    });
+    b += '<div style="margin-top:12px"><button class="sl-btn-ghost" data-act="addset">+ Add set</button></div>';
+    b += '<div style="margin-top:12px"><button class="sl-btn" data-act="savelog">Save to '+
+         (state.date===todayISO()?'today':shortDate(state.date))+'</button></div>';
+
+    openSheet(esc(e.name), b, "Cancel");
+  }
+
+  function openExerciseForm(id){
+    var e = id ? ex(id) : null;
+    var b = '<div style="margin-top:18px"></div>';
+    b += '<div class="sl-field"><label>Exercise name</label><input id="f-name" value="'+esc(e?e.name:'')+'" placeholder="e.g. Tricep pushdown"></div>';
+    b += '<div class="sl-field"><label>Machine or equipment</label><input id="f-gear" value="'+esc(e?e.gear:'')+'" placeholder="e.g. Cable · rope"></div>';
+    b += '<div class="sl-hint">Note the exact attachment or seat setting — a rope pushdown and a bar pushdown are not the same lift.</div>';
+    b += '<div class="sl-field"><label>Muscle group</label><select id="f-muscle">';
+    ["Chest","Back","Legs","Shoulders","Arms","Core"].forEach(function(m){
+      b += '<option'+(e&&e.muscle===m?' selected':'')+'>'+m+'</option>';
+    });
+    b += '</select></div>';
+    b += '<div class="sl-field-pair">';
+    b += '<div class="sl-field"><label>Target reps</label><input type="number" id="f-target" value="'+(e?e.target:10)+'"></div>';
+    b += '<div class="sl-field"><label>Weight step (lb)</label><input type="number" id="f-step" value="'+(e?e.step:5)+'"></div>';
+    b += '</div>';
+    b += '<div class="sl-hint">When every working set reaches your target reps, the app tells you to add one step of weight.</div>';
+    b += '<button class="sl-btn" data-act="saveex" data-id="'+(id||'')+'">'+(e?'Save changes':'Add exercise')+'</button>';
+    if(e){
+      b += '<div style="margin-top:22px"><button class="sl-btn-quiet" data-act="delex" data-id="'+id+'">Delete exercise and its history</button></div>';
+    }
+    openSheet(e?"Edit exercise":"New exercise", b, "Cancel");
+  }
+
+  /* ============ actions ============ */
+  function commit(msg){
+    save().then(function(){ if(msg) toast(msg); });
+    render();
+  }
+
+  function toast(msg){
+    toastMount.innerHTML = '<div class="sl-toast">'+esc(msg)+'</div>';
+    setTimeout(function(){ toastMount.innerHTML = ""; }, 2200);
+  }
+
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+  app.addEventListener("click", function(evt){
+    var t = evt.target.closest("[data-act], [data-tab]");
+    if(!t) return;
+    var act = t.getAttribute("data-act");
+    var tab = t.getAttribute("data-tab");
+
+    if(tab){ state.tab = tab; state.histId = null; render(); return; }
+
+    if(act==="day"){ state.date = shiftISO(state.date, +t.getAttribute("data-n")); render(); return; }
+    if(act==="close"){ closeSheet(); return; }
+    if(act==="pick"){ state.query=""; openPicker(); return; }
+    if(act==="choose"){ openLogger(t.getAttribute("data-id")); return; }
+    if(act==="hist"){ state.histId = t.getAttribute("data-id"); render(); return; }
+    if(act==="histback"){ state.histId = null; render(); return; }
+    if(act==="newex"){ openExerciseForm(null); return; }
+    if(act==="editex"){ openExerciseForm(t.getAttribute("data-id")); return; }
+
+    if(act==="w" || act==="r"){
+      var i = +t.getAttribute("data-i"), n = +t.getAttribute("data-n");
+      var e = ex(state.draft.exerciseId);
+      var s = state.draft.sets[i];
+      if(act==="w") s.w = Math.max(0, s.w + n*e.step);
+      else s.r = Math.max(1, s.r + n);
+      redrawLogger();
+      return;
+    }
+    if(act==="addset"){
+      var last = state.draft.sets[state.draft.sets.length-1];
+      state.draft.sets.push({w:last.w, r:last.r});
+      redrawLogger();
+      return;
+    }
+    if(act==="rmset"){
+      state.draft.sets.splice(+t.getAttribute("data-i"),1);
+      redrawLogger();
+      return;
+    }
+
+    if(act==="savelog"){
+      var exId = state.draft.exerciseId;
+      var clean = state.draft.sets.filter(function(s){ return s.r > 0; });
+      if(!clean.length){ toast("Add at least one set"); return; }
+      state.data.sessions = state.data.sessions.filter(function(s){
+        return !(s.exerciseId===exId && s.date===state.date);
+      });
+      state.data.sessions.push({ id:uid(), date:state.date, exerciseId:exId, sets:clean });
+      closeSheet();
+      commit("Saved");
+      return;
+    }
+
+    if(act==="del"){
+      var sid = t.getAttribute("data-id");
+      state.data.sessions = state.data.sessions.filter(function(s){ return s.id !== sid; });
+      commit("Removed");
+      return;
+    }
+
+    if(act==="saveex"){
+      var id = t.getAttribute("data-id");
+      var name = document.getElementById("f-name").value.trim();
+      if(!name){ toast("Give it a name"); return; }
+      var rec = {
+        id: id || uid(),
+        name: name,
+        gear: document.getElementById("f-gear").value.trim() || "Free weight",
+        muscle: document.getElementById("f-muscle").value,
+        target: Math.max(1, +document.getElementById("f-target").value || 10),
+        step: Math.max(0.5, +document.getElementById("f-step").value || 5)
+      };
+      if(id){
+        state.data.exercises = state.data.exercises.map(function(x){ return x.id===id ? rec : x; });
+      } else {
+        state.data.exercises.push(rec);
+      }
+      closeSheet();
+      commit(id ? "Updated" : "Added to your library");
+      return;
+    }
+
+    if(act==="delex"){
+      var xid = t.getAttribute("data-id");
+      state.data.exercises = state.data.exercises.filter(function(x){ return x.id!==xid; });
+      state.data.sessions = state.data.sessions.filter(function(s){ return s.exerciseId!==xid; });
+      closeSheet();
+      state.histId = null;
+      commit("Deleted");
+      return;
+    }
+
+    if(act==="export"){ exportCSV(); return; }
+    if(act==="exportjson"){ exportJSON(); return; }
+    if(act==="import"){ document.getElementById("sl-file").click(); return; }
+  });
+
+  app.addEventListener("change", function(evt){
+    if(evt.target.id !== "sl-file") return;
+    var file = evt.target.files && evt.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var incoming = safeParse(reader.result);
+      if(!incoming || !incoming.exercises){ toast("That file isn't a Strength Log backup"); return; }
+      state.data = { exercises: incoming.exercises, sessions: incoming.sessions || [] };
+      state.histId = null;
+      commit("Restored " + state.data.sessions.length + " sessions");
+    };
+    reader.onerror = function(){ toast("Couldn't read that file"); };
+    reader.readAsText(file);
+  });
+
+  app.addEventListener("input", function(evt){
+    var t = evt.target;
+    var fld = t.getAttribute && t.getAttribute("data-fld");
+    if(!fld || !state.draft) return;
+    var i = +t.getAttribute("data-i");
+    var v = parseFloat(t.value);
+    if(isNaN(v)) v = 0;
+    if(fld==="w") state.draft.sets[i].w = Math.max(0, v);
+    else state.draft.sets[i].r = Math.max(0, Math.round(v));
+  });
+
+  function redrawLogger(){
+    var e = ex(state.draft.exerciseId);
+    var hist = sessionsFor(e.id).filter(function(s){ return s.date !== state.date; });
+    var prev = hist[0] || null;
+    var scroller = sheetMount.querySelector(".sl-sheet");
+    var y = scroller ? scroller.scrollTop : 0;
+    drawLogger(e, prev, readiness(e, prev));
+    var ns = sheetMount.querySelector(".sl-sheet");
+    if(ns) ns.scrollTop = y;
+  }
+
+  /* ============ export ============ */
+  function download(name, text, mime){
+    var blob = new Blob([text], {type:mime});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+  function exportCSV(){
+    var rows = [["date","exercise","equipment","muscle","set","weight_lb","reps"]];
+    state.data.sessions.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).forEach(function(s){
+      var e = ex(s.exerciseId); if(!e) return;
+      s.sets.forEach(function(st,i){
+        rows.push([s.date, e.name, e.gear, e.muscle, i+1, st.w, st.r]);
+      });
+    });
+    if(rows.length===1){ toast("Nothing to export yet"); return; }
+    var csv = rows.map(function(r){
+      return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(",");
+    }).join("\n");
+    download("strength-log-"+todayISO()+".csv", csv, "text/csv");
+    toast("CSV downloaded");
+  }
+  function exportJSON(){
+    download("strength-log-backup-"+todayISO()+".json", JSON.stringify(state.data,null,2), "application/json");
+    toast("Backup downloaded");
+  }
+
+  /* ============ boot ============ */
+  load().then(function(saved){
+    if(saved && saved.exercises && saved.exercises.length){
+      state.data = saved;
+      if(!state.data.sessions) state.data.sessions = [];
+    } else {
+      state.data = { exercises: seed(), sessions: [] };
+      save();
+    }
+    document.getElementById("sl-boot").classList.add("sl-hide");
+    document.getElementById("sl-shell").classList.remove("sl-hide");
+    render();
+  });
+})();
+</script>
+
+<script>
+/* Register the offline worker so the log opens in a basement gym with no signal. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () { /* offline support is optional */ });
+  });
+}
+</script>
+</body>
+</html>
