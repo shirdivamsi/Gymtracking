@@ -851,6 +851,33 @@
   }
   .sl-calstat b{color:var(--amber);font-weight:500;}
 
+  /* ---------- account button ---------- */
+  .sl-acct{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:7px 12px 7px 10px;
+    border:1px solid var(--knurl);
+    border-radius:999px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--chalk);
+    line-height:1;
+  }
+  .sl-acct:hover{border-color:var(--steel-dim);}
+  .sl-acct-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--amber);
+    flex-shrink:0;
+  }
+  .sl-acct-dot[data-busy="1"]{animation:sl-pulse 1s ease-in-out infinite;}
+  @keyframes sl-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){
+    .sl-acct-dot[data-busy="1"]{animation:none;opacity:.6;}
+  }
+
   /* ---------- login gate ---------- */
   .sl-gate{
     padding:44px 4px 40px;
@@ -1328,8 +1355,17 @@
 
   /* ============ render ============ */
   function render(){
-    document.getElementById("sl-clock").textContent =
-      dayName(todayISO()).slice(0,3)+" "+shortDate(todayISO());
+    var clock = document.getElementById("sl-clock");
+    if(cloud.user){
+      /* The date is already on the Today screen, so this slot is better spent on
+         something you'd otherwise have to go hunting for. */
+      var initial = (cloud.user.email || "?").charAt(0).toUpperCase();
+      clock.innerHTML = '<button class="sl-acct" data-act="account" aria-label="Account and sync">'+
+                        '<span class="sl-acct-dot"'+(cloud.busy?' data-busy="1"':'')+'></span>'+
+                        esc(initial)+'</button>';
+    } else {
+      clock.textContent = dayName(todayISO()).slice(0,3)+" "+shortDate(todayISO());
+    }
     var nav = app.querySelector(".sl-tabs");
     if(needsAuth()){
       if(nav) nav.style.display = "none";
@@ -1833,6 +1869,37 @@
 
   /* Calendar. Days you trained are marked, so this doubles as a consistency view —
      you can see the gaps as well as jump to a date. */
+  function openAccountSheet(){
+    var b = '<div class="sl-eyebrow">Signed in as</div>';
+    b += '<div class="sl-card">';
+    b += '<div style="font-size:15px;font-weight:600;word-break:break-all">'+esc(cloud.user.email || "")+'</div>';
+    b += '<div class="sl-status" style="margin-top:8px">';
+    b += 'Last sync: <b>'+syncAgo()+'</b><br>';
+    b += 'Sessions on this device: <b>'+state.data.sessions.length+'</b>';
+    b += '</div></div>';
+
+    if(cloud.error){
+      b += '<div class="sl-gate-err" style="margin-top:12px">'+esc(cloud.error)+'</div>';
+    }
+
+    b += '<div style="margin-top:12px"><button class="sl-btn" data-act="syncnow"'+
+         (cloud.busy?' disabled':'')+'>'+(cloud.busy?'Syncing…':'Sync now')+'</button></div>';
+
+    b += '<div class="sl-eyebrow">Session</div>';
+    if(cloud.confirmOut){
+      b += '<div class="sl-card"><div style="font-size:13px;line-height:1.55;color:var(--steel)">';
+      b += 'Your log stays on this device <b style="color:var(--chalk)">and</b> on the server. '+
+           'Signing out just means entering your password again next time.';
+      b += '</div></div>';
+      b += '<div style="margin-top:10px"><button class="sl-btn" data-act="signout">Yes, sign out</button></div>';
+      b += '<div style="margin-top:10px"><button class="sl-btn-ghost" data-act="cancelout">Stay signed in</button></div>';
+    } else {
+      b += '<div><button class="sl-btn-ghost" data-act="asksignout">Sign out</button></div>';
+    }
+
+    openSheet("Account", b, "Close");
+  }
+
   function openCalendar(){
     var cm = state.calMonth || state.date.slice(0,7);
     var y = +cm.slice(0,4), m = +cm.slice(5,7) - 1;
@@ -1971,6 +2038,9 @@
       commit();
       return;
     }
+    if(act==="account"){ cloud.confirmOut = false; openAccountSheet(); return; }
+    if(act==="asksignout"){ cloud.confirmOut = true; openAccountSheet(); return; }
+    if(act==="cancelout"){ cloud.confirmOut = false; openAccountSheet(); return; }
     if(act==="cal"){ state.calMonth = state.date.slice(0,7); openCalendar(); return; }
     if(act==="calshift"){
       var cy = +state.calMonth.slice(0,4), cmo = +state.calMonth.slice(5,7) - 1 + (+t.getAttribute("data-n"));
@@ -2119,8 +2189,10 @@
     if(act==="dosignin" || act==="dosignup"){
       var em = document.getElementById("sl-au-email");
       var pw = document.getElementById("sl-au-pass");
-      var addr = em ? em.value.trim() : "";
-      var pass = pw ? pw.value : "";
+      var addr = (em ? em.value : cloud.form.email).trim();
+      var pass = (pw ? pw.value : cloud.form.pass);
+      cloud.form.email = addr;
+      cloud.form.pass = pass;
       if(!addr || addr.indexOf("@") < 1){ cloud.error = "Enter your email address"; render(); return; }
       if(pass.length < 8){ cloud.error = "Password must be at least 8 characters"; render(); return; }
 
@@ -2141,6 +2213,7 @@
           render();
           return;
         }
+        cloud.form = { email:"", pass:"" };
         markAuthed();
         render();
       }).catch(function(err){
@@ -2165,13 +2238,21 @@
       return;
     }
     if(act==="signout"){
-      sb.auth.signOut().then(function(){
-        cloud.user = null;
-        cloud.mode = "signin";
-        cloud.error = null;
-        cloud.notice = null;
-        render();
-      });
+      /* Push anything unsynced before letting go of the session. */
+      var finish = function(){
+        sb.auth.signOut().then(function(){
+          cloud.user = null;
+          cloud.mode = "signin";
+          cloud.confirmOut = false;
+          cloud.error = null;
+          cloud.notice = null;
+          closeSheet();
+          render();
+          toast("Signed out");
+        });
+      };
+      if(cloud.user) syncNow(true).then(finish, finish);
+      else finish();
       return;
     }
     if(act==="syncnow"){ syncNow(false); return; }
@@ -2197,6 +2278,9 @@
   });
 
   app.addEventListener("input", function(evt){
+    if(evt.target.id === "sl-au-email"){ cloud.form.email = evt.target.value; return; }
+    if(evt.target.id === "sl-au-pass"){  cloud.form.pass  = evt.target.value; return; }
+
     var t = evt.target;
     var fld = t.getAttribute && t.getAttribute("data-fld");
     if(!fld || !state.draft) return;
@@ -2286,7 +2370,8 @@
 
   var sb = null;
   var cloud = { on:false, ready:false, user:null, busy:false, error:null,
-                pending:false, mode:"signin", authBusy:false, notice:null };
+                pending:false, mode:"signin", authBusy:false, notice:null,
+                form:{ email:"", pass:"" } };
 
   function cloudConfigured(){
     var c = window.SL_CONFIG || {};
@@ -2354,12 +2439,14 @@
 
     h += '<div class="sl-field"><label>Email</label>'+
          '<input id="sl-au-email" type="email" inputmode="email" autocomplete="email" '+
-         'autocapitalize="off" autocorrect="off" placeholder="you@example.com"></div>';
+         'autocapitalize="off" autocorrect="off" placeholder="you@example.com" '+
+         'value="'+esc(cloud.form.email)+'"></div>';
 
     h += '<div class="sl-field"><label>Password</label>'+
          '<input id="sl-au-pass" type="password" autocomplete="'+
          (signup?'new-password':'current-password')+'" placeholder="'+
-         (signup?'At least 8 characters':'Your password')+'"></div>';
+         (signup?'At least 8 characters':'Your password')+'" '+
+         'value="'+esc(cloud.form.pass)+'"></div>';
 
     if(cloud.error)  h += '<div class="sl-gate-err">'+esc(cloud.error)+'</div>';
     if(cloud.notice) h += '<div class="sl-gate-ok">'+esc(cloud.notice)+'</div>';
@@ -2386,7 +2473,7 @@
       return "Supabase won't email that address. Turn off 'Confirm email' in Authentication → Sign In / Providers, then create the account again — password sign-in needs no email at all.";
     }
     if(/rate limit/i.test(m)){
-      return "Email rate limit hit (Supabase allows 2 per hour). Password sign-in doesn't send email — turn off 'Confirm email' and this stops happening.";
+      return "This means 'Confirm email' is still ON in Supabase — the server tried to email you and hit its 2-per-hour cap. Switch it off under Authentication → Sign In / Providers, press Save changes, then try again. With it off, no email is sent and there is no limit to hit.";
     }
     if(/Invalid login credentials/i.test(m)){
       return "Email or password not recognised. If you haven't made an account yet, tap 'Create an account'.";
