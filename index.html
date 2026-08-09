@@ -963,6 +963,21 @@
       .slice(0, 60);
   }
 
+  /* Mobile keyboards (autofill chips, predictive text) can slip invisible
+     characters or a "Name <email>" wrapper into an email field without it
+     looking wrong on screen. Strip that out before it ever reaches the
+     network, so a malformed value fails fast with a clear message instead
+     of a confusing "invalid format" error from the server. */
+  function cleanEmail(raw){
+    var s = String(raw || "").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "").trim();
+    var wrapped = s.match(/<([^<>]+)>/);
+    if(wrapped) s = wrapped[1].trim();
+    return s.toLowerCase();
+  }
+  function isValidEmail(s){
+    return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s);
+  }
+
   function seed(){
     var L = [
 
@@ -2038,8 +2053,8 @@
     }
     if(act==="signin"){
       var box = document.getElementById("sl-email");
-      var addr = box ? box.value.trim() : "";
-      if(!addr || addr.indexOf("@") < 0){ toast("Enter your email"); return; }
+      var addr = cleanEmail(box ? box.value : "");
+      if(!addr || !isValidEmail(addr)){ cloud.error = "Enter a valid email like name@example.com"; render(); return; }
       cloud.error = null;
       sb.auth.signInWithOtp({
         email: addr,
