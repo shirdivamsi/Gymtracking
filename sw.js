@@ -1,12 +1,14 @@
 /* Strength Log — offline support.
    Bump CACHE when you change any file, or phones will keep serving the old copy. */
-const CACHE = "strength-log-v7";
+const CACHE = "strength-log-v9";
 
 const FILES = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./config.js",
   "./icon-192.png",
+  "./icon-180.png",
   "./icon-512.png"
 ];
 

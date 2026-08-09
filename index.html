@@ -11,8 +11,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Strength Log">
 <link rel="manifest" href="manifest.webmanifest">
+<script src="config.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link rel="icon" href="icon-192.png" sizes="192x192">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -954,6 +956,13 @@
                 you log is the weight on ONE side, not the total.
      assistance machines where the stack COUNTERWEIGHTS you (assisted pull-up/dip).
                 A lower number is harder, so progress runs downward. */
+  function slugify(name){
+    return String(name).toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60);
+  }
+
   function seed(){
     var L = [
 
@@ -1101,9 +1110,13 @@
 
     ];
 
+    var used = {};
     return L.map(function(r,i){
+      var slug = slugify(r[1]);
+      if(used[slug]) slug = slug + "-" + i;      // never let two rows share a key
+      used[slug] = 1;
       return {
-        id: "x"+i,
+        id: "x"+i, slug: slug,
         muscle: r[0], name: r[1], gear: r[2], eq: r[3],
         target: r[4], step: r[5],
         perSide: !!r[6], assist: !!r[7]
@@ -1149,6 +1162,18 @@
   }
 
   /* ============ dates ============ */
+  /* Running from the home screen, or in a browser tab? On iOS this is the
+     difference between your log persisting and iOS wiping it after seven days
+     of not opening the site. Worth telling the user plainly. */
+  function isInstalled(){
+    if(window.navigator && window.navigator.standalone === true) return true;
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    return false;
+  }
+  function isIOS(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent || "");
+  }
+
   function todayISO(){
     var d = new Date();
     return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
@@ -1297,6 +1322,15 @@
     h += '<div class="sl-datestrip-sub">'+shortDate(d)+' &nbsp;▾</div></button>';
     h += '<button data-act="day" data-n="1" aria-label="Next day"'+(isToday?' disabled':'')+'>&#9654;</button>';
     h += '</div>';
+
+    if(!isInstalled() && !(state.data.meta && state.data.meta.hideInstallTip)){
+      h += '<div class="sl-nag"><div class="sl-nag-text">';
+      h += '<b>You\'re in a browser tab, not the installed app.</b> ';
+      h += isIOS()
+        ? 'Tap <b>Share</b>, then <b>Add to Home Screen</b>. Until you do, iOS clears this kind of storage after seven days of not opening the site — your log can vanish without you clearing anything.'
+        : 'Use your browser menu, then <b>Add to Home screen</b>, to get it full-screen and working offline.';
+      h += '</div><button class="sl-btn-quiet" data-act="hidetip">Got it</button></div>';
+    }
 
     var dt = dayTypeOf(d);
     h += '<div class="sl-chips">';
@@ -1467,6 +1501,9 @@
     });
 
     var autoOn = !(state.data.meta && state.data.meta.autoBackup === false);
+    h += '<div class="sl-eyebrow">Cloud sync</div>';
+    h += cloudPanel();
+
     h += '<div class="sl-eyebrow">Keeping your log safe</div>';
     h += '<div class="sl-card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
     h += '<div style="flex:1;min-width:170px">';
@@ -1868,6 +1905,12 @@
     if(tab){ state.tab = tab; state.histId = null; render(); return; }
 
     if(act==="day"){ state.date = shiftISO(state.date, +t.getAttribute("data-n")); render(); return; }
+    if(act==="hidetip"){
+      state.data.meta = state.data.meta || {};
+      state.data.meta.hideInstallTip = true;
+      commit();
+      return;
+    }
     if(act==="setsplit"){
       var sid = t.getAttribute("data-split");
       state.data.days = state.data.days || {};
@@ -1942,6 +1985,7 @@
       autoBackup();
       closeSheet();
       commit("Saved");
+      if(cloud.user) syncNow(true);
       return;
     }
 
@@ -1958,6 +2002,7 @@
       if(!name){ toast("Give it a name"); return; }
       var rec = {
         id: id || uid(),
+        slug: (e && e.slug) || slugify(name) + "-" + Math.random().toString(36).slice(2,5),
         name: name,
         gear: document.getElementById("f-gear").value.trim() || "Free weight",
         muscle: document.getElementById("f-muscle").value,
@@ -1991,6 +2036,25 @@
       commit(was ? "Auto-backup off" : "Auto-backup on");
       return;
     }
+    if(act==="signin"){
+      var box = document.getElementById("sl-email");
+      var addr = box ? box.value.trim() : "";
+      if(!addr || addr.indexOf("@") < 0){ toast("Enter your email"); return; }
+      cloud.error = null;
+      sb.auth.signInWithOtp({
+        email: addr,
+        options: { emailRedirectTo: location.href.split("#")[0].split("?")[0] }
+      }).then(function(r){
+        if(r.error){ cloud.error = r.error.message; render(); return; }
+        toast("Check your email");
+      });
+      return;
+    }
+    if(act==="signout"){
+      sb.auth.signOut().then(function(){ cloud.user = null; render(); });
+      return;
+    }
+    if(act==="syncnow"){ syncNow(false); return; }
     if(act==="export"){ exportCSV(); return; }
     if(act==="exportjson"){ exportJSON(); return; }
     if(act==="import"){ document.getElementById("sl-file").click(); return; }
@@ -2092,6 +2156,239 @@
     return { never:false, days: daysAgo(last) };
   }
 
+
+  /* ============ cloud sync ============
+     Local-first. The browser store stays the working copy so the app is instant
+     and works with no signal; the server is the durable copy. Every sync pushes
+     local up first, then pulls the merged result back down — so a push that
+     failed last week is not lost, and the pull can never erase something the
+     server hasn't seen yet. */
+
+  var sb = null;
+  var cloud = { on:false, user:null, busy:false, error:null, pending:false };
+
+  function cloudConfigured(){
+    var c = window.SL_CONFIG || {};
+    return !!(c.supabaseUrl && c.supabaseAnonKey && c.supabaseUrl.indexOf("http") === 0);
+  }
+
+  function cloudInit(){
+    if(sb || !cloudConfigured() || !window.supabase || !window.supabase.createClient) return;
+    var c = window.SL_CONFIG;
+    try {
+      sb = window.supabase.createClient(c.supabaseUrl, c.supabaseAnonKey, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      });
+    } catch(err){ cloud.error = "Could not start the client"; return; }
+
+    cloud.on = true;
+
+    sb.auth.getSession().then(function(res){
+      cloud.user = (res && res.data && res.data.session) ? res.data.session.user : null;
+      render();
+      if(cloud.user) syncNow(true);
+    }).catch(function(){});
+
+    sb.auth.onAuthStateChange(function(_evt, session){
+      var was = cloud.user;
+      cloud.user = session ? session.user : null;
+      render();
+      if(cloud.user && !was) syncNow(true);
+    });
+  }
+
+  function slugOf(e){ return e.slug || slugify(e.name); }
+
+  function pushAll(){
+    var uid = cloud.user.id;
+
+    var exRows = state.data.exercises.map(function(e){
+      return {
+        user_id: uid, slug: slugOf(e), name: e.name, gear: e.gear || "",
+        muscle: e.muscle, eq: e.eq || "Machine",
+        target_reps: e.target, weight_step: e.step,
+        per_side: !!e.perSide, assist: !!e.assist
+      };
+    });
+
+    return sb.from("exercises").upsert(exRows, { onConflict: "user_id,slug" })
+      .then(function(r){ if(r.error) throw r.error; return sb.from("exercises").select("id,slug"); })
+      .then(function(r){
+        if(r.error) throw r.error;
+        var bySlug = {};
+        r.data.forEach(function(row){ bySlug[row.slug] = row.id; });
+
+        var dayRows = Object.keys(state.data.days || {}).map(function(d){
+          return { user_id: uid, day: d, split: state.data.days[d] };
+        });
+        var p = dayRows.length
+          ? sb.from("workout_days").upsert(dayRows, { onConflict: "user_id,day" })
+          : Promise.resolve({});
+        return p.then(function(){ return bySlug; });
+      })
+      .then(function(bySlug){
+        var sessRows = [];
+        state.data.sessions.forEach(function(s){
+          var e = ex(s.exerciseId);
+          if(!e || !s.sets.length) return;
+          var exId = bySlug[slugOf(e)];
+          if(!exId) return;
+          sessRows.push({ user_id: uid, day: s.date, exercise_id: exId });
+        });
+        if(!sessRows.length) return;
+
+        return sb.from("sessions")
+          .upsert(sessRows, { onConflict: "user_id,day,exercise_id" })
+          .select("id,day,exercise_id")
+          .then(function(r){
+            if(r.error) throw r.error;
+            var idFor = {}, ids = [];
+            r.data.forEach(function(row){
+              idFor[row.day + "|" + row.exercise_id] = row.id;
+              ids.push(row.id);
+            });
+            /* Replace the sets rather than merging them: a session you edited
+               locally should end up with exactly the sets you can see. */
+            return sb.from("sets").delete().in("session_id", ids).then(function(){
+              var setRows = [];
+              state.data.sessions.forEach(function(s){
+                var e = ex(s.exerciseId);
+                if(!e) return;
+                var sessId = idFor[s.date + "|" + bySlug[slugOf(e)]];
+                if(!sessId) return;
+                s.sets.forEach(function(st, i){
+                  setRows.push({ session_id: sessId, set_no: i+1, weight: st.w, reps: st.r });
+                });
+              });
+              if(!setRows.length) return;
+              return sb.from("sets").insert(setRows).then(function(r2){
+                if(r2.error) throw r2.error;
+              });
+            });
+          });
+      });
+  }
+
+  function pullAll(){
+    return Promise.all([
+      sb.from("exercises").select("*"),
+      sb.from("sessions").select("id,day,exercise_id"),
+      sb.from("sets").select("session_id,set_no,weight,reps"),
+      sb.from("workout_days").select("day,split")
+    ]).then(function(res){
+      res.forEach(function(r){ if(r.error) throw r.error; });
+      var exs = res[0].data, sess = res[1].data, sets = res[2].data, days = res[3].data;
+
+      var localBySlug = {};
+      state.data.exercises.forEach(function(e){ localBySlug[slugOf(e)] = e; });
+
+      var byServerId = {};
+      exs.forEach(function(row){
+        var local = localBySlug[row.slug];
+        if(!local){
+          local = { id: "srv_" + row.id.slice(0,8), slug: row.slug };
+          state.data.exercises.push(local);
+        }
+        local.name    = row.name;
+        local.gear    = row.gear;
+        local.muscle  = row.muscle;
+        local.eq      = row.eq;
+        local.target  = row.target_reps;
+        local.step    = Number(row.weight_step);
+        local.perSide = row.per_side;
+        local.assist  = row.assist;
+        byServerId[row.id] = local;
+      });
+
+      var bySession = {};
+      sets.forEach(function(st){
+        (bySession[st.session_id] = bySession[st.session_id] || []).push(st);
+      });
+
+      var rebuilt = [];
+      sess.forEach(function(row){
+        var e = byServerId[row.exercise_id];
+        var list = bySession[row.id];
+        if(!e || !list || !list.length) return;
+        list.sort(function(a,b){ return a.set_no - b.set_no; });
+        rebuilt.push({
+          id: "srv_" + row.id.slice(0,8),
+          date: row.day,
+          exerciseId: e.id,
+          sets: list.map(function(x){ return { w: Number(x.weight), r: x.reps }; })
+        });
+      });
+      state.data.sessions = rebuilt;
+
+      var dmap = {};
+      days.forEach(function(d){ dmap[d.day] = d.split; });
+      state.data.days = dmap;
+    });
+  }
+
+  function syncNow(quiet){
+    if(!sb || !cloud.user) return Promise.resolve();
+    if(cloud.busy){ cloud.pending = true; return Promise.resolve(); }
+
+    cloud.busy = true;
+    cloud.error = null;
+    render();
+
+    return pushAll()
+      .then(pullAll)
+      .then(function(){
+        cloud.busy = false;
+        state.data.meta = state.data.meta || {};
+        state.data.meta.lastSync = new Date().toISOString();
+        save();
+        render();
+        if(!quiet) toast("Synced");
+        if(cloud.pending){ cloud.pending = false; syncNow(true); }
+      })
+      .catch(function(err){
+        cloud.busy = false;
+        cloud.pending = false;
+        /* Nothing local is discarded on failure — the next sync retries it. */
+        cloud.error = (err && (err.message || err.error_description)) || "Sync failed";
+        render();
+        if(!quiet) toast("Sync failed");
+      });
+  }
+
+  function syncAgo(){
+    var t = state.data.meta && state.data.meta.lastSync;
+    if(!t) return "never";
+    var mins = Math.floor((Date.now() - new Date(t).getTime()) / 60000);
+    if(mins < 1)    return "just now";
+    if(mins < 60)   return mins + " min ago";
+    if(mins < 1440) return Math.floor(mins/60) + "h ago";
+    return Math.floor(mins/1440) + "d ago";
+  }
+
+  function cloudPanel(){
+    if(!cloudConfigured()){
+      return '<div class="sl-hint" style="margin-top:12px">Cloud sync is off. Add your Supabase URL and anon key to <b style="color:var(--chalk)">config.js</b> to turn it on.</div>';
+    }
+    var h = '<div class="sl-card">';
+    if(!cloud.user){
+      h += '<div style="font-size:14px;font-weight:600;margin-bottom:4px">Sync across devices</div>';
+      h += '<div style="font-size:12px;line-height:1.5;color:var(--steel-dim);margin-bottom:12px">Sign in and your log lives on the server as well as this phone. We email you a link — no password.</div>';
+      h += '<input class="sl-search" id="sl-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" style="margin-top:0">';
+      h += '<div style="margin-top:10px"><button class="sl-btn" data-act="signin">Email me a link</button></div>';
+    } else {
+      h += '<div style="font-size:14px;font-weight:600;margin-bottom:4px">Signed in</div>';
+      h += '<div class="sl-status" style="margin-top:2px">'+esc(cloud.user.email || "")+'<br>Last sync: <b>'+syncAgo()+'</b></div>';
+      h += '<div style="margin-top:12px"><button class="sl-btn" data-act="syncnow"'+(cloud.busy?' disabled':'')+'>'+
+           (cloud.busy ? 'Syncing…' : 'Sync now')+'</button></div>';
+      h += '<div style="margin-top:10px"><button class="sl-btn-quiet" data-act="signout">Sign out</button></div>';
+    }
+    if(cloud.error){
+      h += '<div class="sl-status" style="color:var(--rust);margin-top:12px">'+esc(cloud.error)+'</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
   /* ============ boot ============ */
   /* Ask the browser not to evict this origin when the device runs low on space.
      This does nothing against a manual "clear site data" — only backups cover that. */
@@ -2144,6 +2441,13 @@
 
     data.meta = data.meta || {};
     data.meta.libVersion = LIB_VERSION;
+
+    var taken = {};
+    data.exercises.forEach(function(e){
+      if(!e.slug) e.slug = slugify(e.name);
+      while(taken[e.slug]) e.slug += "-x";
+      taken[e.slug] = 1;
+    });
     return data;
   }
 
@@ -2162,6 +2466,22 @@
     document.getElementById("sl-boot").classList.add("sl-hide");
     document.getElementById("sl-shell").classList.remove("sl-hide");
     render();
+
+    /* The client library is a deferred CDN script and may not have arrived yet —
+       and offline it never will. Poll briefly, then give up quietly and carry on
+       as a purely local app. */
+    if(cloudConfigured()){
+      var tries = 0;
+      var waiting = setInterval(function(){
+        tries++;
+        if(window.supabase && window.supabase.createClient){
+          clearInterval(waiting);
+          cloudInit();
+        } else if(tries > 40){
+          clearInterval(waiting);
+        }
+      }, 250);
+    }
   });
 })();
 </script>
