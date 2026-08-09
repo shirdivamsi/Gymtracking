@@ -851,6 +851,50 @@
   }
   .sl-calstat b{color:var(--amber);font-weight:500;}
 
+  /* ---------- login gate ---------- */
+  .sl-gate{
+    padding:44px 4px 40px;
+    max-width:380px;
+    margin:0 auto;
+  }
+  .sl-gate-mark{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:32px;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    line-height:1;
+    margin-bottom:10px;
+  }
+  .sl-gate-mark em{font-style:normal;color:var(--amber);}
+  .sl-gate-sub{
+    font-size:13px;
+    line-height:1.55;
+    color:var(--steel-dim);
+    margin-bottom:28px;
+  }
+  .sl-gate-link{
+    display:block;
+    width:100%;
+    margin-top:14px;
+    padding:12px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.10em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+  }
+  .sl-gate-link:hover{color:var(--amber);}
+  .sl-gate-err, .sl-gate-ok{
+    font-size:12.5px;
+    line-height:1.55;
+    border-radius:3px;
+    padding:11px 12px;
+    margin-bottom:16px;
+  }
+  .sl-gate-err{border:1px solid var(--rust);color:#E9B4A8;background:rgba(180,68,46,.10);}
+  .sl-gate-ok{border:1px solid var(--amber-dim);color:var(--chalk);background:rgba(240,180,41,.07);}
+
   .sl-chips{
     display:flex;
     gap:6px;
@@ -961,21 +1005,6 @@
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 60);
-  }
-
-  /* Mobile keyboards (autofill chips, predictive text) can slip invisible
-     characters or a "Name <email>" wrapper into an email field without it
-     looking wrong on screen. Strip that out before it ever reaches the
-     network, so a malformed value fails fast with a clear message instead
-     of a confusing "invalid format" error from the server. */
-  function cleanEmail(raw){
-    var s = String(raw || "").replace(/[\u200B-\u200D\uFEFF\u00A0]/g, "").trim();
-    var wrapped = s.match(/<([^<>]+)>/);
-    if(wrapped) s = wrapped[1].trim();
-    return s.toLowerCase();
-  }
-  function isValidEmail(s){
-    return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s);
   }
 
   function seed(){
@@ -1301,6 +1330,14 @@
   function render(){
     document.getElementById("sl-clock").textContent =
       dayName(todayISO()).slice(0,3)+" "+shortDate(todayISO());
+    var nav = app.querySelector(".sl-tabs");
+    if(needsAuth()){
+      if(nav) nav.style.display = "none";
+      renderAuthGate();
+      return;
+    }
+    if(nav) nav.style.display = "";
+
     var tabs = app.querySelectorAll(".sl-tab");
     for(var i=0;i<tabs.length;i++){
       tabs[i].setAttribute("data-on", tabs[i].getAttribute("data-tab")===state.tab ? "1" : "0");
@@ -2006,8 +2043,23 @@
 
     if(act==="del"){
       var sid = t.getAttribute("data-id");
-      state.data.sessions = state.data.sessions.filter(function(s){ return s.id !== sid; });
+      var gone = null;
+      state.data.sessions = state.data.sessions.filter(function(s){
+        if(s.id === sid){ gone = s; return false; }
+        return true;
+      });
+      /* Record a tombstone. Without one, the next pull would cheerfully
+         resurrect the session you just deleted. */
+      if(gone){
+        var e = ex(gone.exerciseId);
+        if(e){
+          state.data.meta = state.data.meta || {};
+          state.data.meta.deleted = state.data.meta.deleted || [];
+          state.data.meta.deleted.push({ day: gone.date, slug: slugOf(e) });
+        }
+      }
       commit("Removed");
+      if(cloud.user) syncNow(true);
       return;
     }
 
@@ -2051,10 +2103,57 @@
       commit(was ? "Auto-backup off" : "Auto-backup on");
       return;
     }
+    if(act==="authmode"){
+      cloud.mode = (cloud.mode === "signup") ? "signin" : "signup";
+      cloud.error = null; cloud.notice = null;
+      render();
+      return;
+    }
+    if(act==="offlinemode"){
+      /* Local data only, until a session comes back. Nothing syncs. */
+      cloud.ready = false;
+      render();
+      toast("Offline — local log only");
+      return;
+    }
+    if(act==="dosignin" || act==="dosignup"){
+      var em = document.getElementById("sl-au-email");
+      var pw = document.getElementById("sl-au-pass");
+      var addr = em ? em.value.trim() : "";
+      var pass = pw ? pw.value : "";
+      if(!addr || addr.indexOf("@") < 1){ cloud.error = "Enter your email address"; render(); return; }
+      if(pass.length < 8){ cloud.error = "Password must be at least 8 characters"; render(); return; }
+
+      cloud.authBusy = true; cloud.error = null; cloud.notice = null;
+      render();
+
+      var call = (act === "dosignup")
+        ? sb.auth.signUp({ email: addr, password: pass })
+        : sb.auth.signInWithPassword({ email: addr, password: pass });
+
+      call.then(function(r){
+        cloud.authBusy = false;
+        if(r.error){ cloud.error = authError(r.error); render(); return; }
+        if(act === "dosignup" && r.data && !r.data.session){
+          /* Confirmations are still switched on server-side. */
+          cloud.notice = "Account made, but Supabase wants an email confirmation. Turn off 'Confirm email' in Authentication → Sign In / Providers, then sign in.";
+          cloud.mode = "signin";
+          render();
+          return;
+        }
+        markAuthed();
+        render();
+      }).catch(function(err){
+        cloud.authBusy = false;
+        cloud.error = authError(err);
+        render();
+      });
+      return;
+    }
     if(act==="signin"){
       var box = document.getElementById("sl-email");
-      var addr = cleanEmail(box ? box.value : "");
-      if(!addr || !isValidEmail(addr)){ cloud.error = "Enter a valid email like name@example.com"; render(); return; }
+      var addr = box ? box.value.trim() : "";
+      if(!addr || addr.indexOf("@") < 0){ toast("Enter your email"); return; }
       cloud.error = null;
       sb.auth.signInWithOtp({
         email: addr,
@@ -2066,7 +2165,13 @@
       return;
     }
     if(act==="signout"){
-      sb.auth.signOut().then(function(){ cloud.user = null; render(); });
+      sb.auth.signOut().then(function(){
+        cloud.user = null;
+        cloud.mode = "signin";
+        cloud.error = null;
+        cloud.notice = null;
+        render();
+      });
       return;
     }
     if(act==="syncnow"){ syncNow(false); return; }
@@ -2180,7 +2285,8 @@
      server hasn't seen yet. */
 
   var sb = null;
-  var cloud = { on:false, user:null, busy:false, error:null, pending:false };
+  var cloud = { on:false, ready:false, user:null, busy:false, error:null,
+                pending:false, mode:"signin", authBusy:false, notice:null };
 
   function cloudConfigured(){
     var c = window.SL_CONFIG || {};
@@ -2200,22 +2306,120 @@
 
     sb.auth.getSession().then(function(res){
       cloud.user = (res && res.data && res.data.session) ? res.data.session.user : null;
+      cloud.ready = true;
+      if(cloud.user) markAuthed();
       render();
       if(cloud.user) syncNow(true);
-    }).catch(function(){});
+    }).catch(function(){ cloud.ready = true; render(); });
 
     sb.auth.onAuthStateChange(function(_evt, session){
       var was = cloud.user;
       cloud.user = session ? session.user : null;
+      cloud.ready = true;
+      if(cloud.user) markAuthed();
       render();
       if(cloud.user && !was) syncNow(true);
     });
+  }
+
+  function markAuthed(){
+    state.data.meta = state.data.meta || {};
+    if(!state.data.meta.authedBefore){
+      state.data.meta.authedBefore = true;
+      save();
+    }
+  }
+
+  /* Should the login screen stand in front of the app?
+     Deliberately NOT when we're offline on a device that has signed in before —
+     locking you out of your own local log in a gym basement would be worse than
+     the thing the lock is for. */
+  function needsAuth(){
+    if(!cloudConfigured()) return false;   // purely local install
+    if(!cloud.ready)       return false;   // still checking; don't flash the gate
+    if(cloud.user)         return false;
+    var seenBefore = state.data.meta && state.data.meta.authedBefore;
+    var offline = (typeof navigator !== "undefined" && navigator.onLine === false);
+    if(seenBefore && offline) return false;
+    return true;
+  }
+
+  function renderAuthGate(){
+    var signup = cloud.mode === "signup";
+    var h = '<div class="sl-gate">';
+    h += '<div class="sl-gate-mark">Strength<em>·</em>Log</div>';
+    h += '<div class="sl-gate-sub">'+(signup
+      ? 'Create your account. Your training history syncs to your own database.'
+      : 'Sign in to reach your log.')+'</div>';
+
+    h += '<div class="sl-field"><label>Email</label>'+
+         '<input id="sl-au-email" type="email" inputmode="email" autocomplete="email" '+
+         'autocapitalize="off" autocorrect="off" placeholder="you@example.com"></div>';
+
+    h += '<div class="sl-field"><label>Password</label>'+
+         '<input id="sl-au-pass" type="password" autocomplete="'+
+         (signup?'new-password':'current-password')+'" placeholder="'+
+         (signup?'At least 8 characters':'Your password')+'"></div>';
+
+    if(cloud.error)  h += '<div class="sl-gate-err">'+esc(cloud.error)+'</div>';
+    if(cloud.notice) h += '<div class="sl-gate-ok">'+esc(cloud.notice)+'</div>';
+
+    h += '<button class="sl-btn" data-act="'+(signup?'dosignup':'dosignin')+'"'+
+         (cloud.authBusy?' disabled':'')+'>'+
+         (cloud.authBusy ? 'Working…' : (signup ? 'Create account' : 'Sign in'))+'</button>';
+
+    h += '<button class="sl-gate-link" data-act="authmode">'+
+         (signup ? 'I already have an account' : 'Create an account')+'</button>';
+
+    if(state.data.meta && state.data.meta.authedBefore){
+      h += '<button class="sl-gate-link" data-act="offlinemode">Use this device offline</button>';
+    }
+    h += '</div>';
+
+    pageEl.innerHTML = h;
+  }
+
+  function authError(err){
+    var m = (err && (err.message || err.error_description)) || "Something went wrong";
+    /* Translate the two Supabase messages that mislead people the most. */
+    if(/not authorized|Email address not authorized/i.test(m)){
+      return "Supabase won't email that address. Turn off 'Confirm email' in Authentication → Sign In / Providers, then create the account again — password sign-in needs no email at all.";
+    }
+    if(/rate limit/i.test(m)){
+      return "Email rate limit hit (Supabase allows 2 per hour). Password sign-in doesn't send email — turn off 'Confirm email' and this stops happening.";
+    }
+    if(/Invalid login credentials/i.test(m)){
+      return "Email or password not recognised. If you haven't made an account yet, tap 'Create an account'.";
+    }
+    return m;
   }
 
   function slugOf(e){ return e.slug || slugify(e.name); }
 
   function pushAll(){
     var uid = cloud.user.id;
+
+    /* Deletions first, so a re-added session on the same day isn't wiped by its
+       own tombstone a moment later. */
+    var tombs = (state.data.meta && state.data.meta.deleted) || [];
+    var clearTombs = Promise.resolve();
+    if(tombs.length){
+      clearTombs = sb.from("exercises").select("id,slug").then(function(r){
+        if(r.error) throw r.error;
+        var idBySlug = {};
+        r.data.forEach(function(row){ idBySlug[row.slug] = row.id; });
+        var jobs = tombs.map(function(t2){
+          var exId = idBySlug[t2.slug];
+          if(!exId) return Promise.resolve();
+          return sb.from("sessions").delete()
+            .eq("day", t2.day).eq("exercise_id", exId);
+        });
+        return Promise.all(jobs);
+      }).then(function(){
+        state.data.meta.deleted = [];
+        save();
+      });
+    }
 
     var exRows = state.data.exercises.map(function(e){
       return {
@@ -2226,7 +2430,8 @@
       };
     });
 
-    return sb.from("exercises").upsert(exRows, { onConflict: "user_id,slug" })
+    return clearTombs
+      .then(function(){ return sb.from("exercises").upsert(exRows, { onConflict: "user_id,slug" }); })
       .then(function(r){ if(r.error) throw r.error; return sb.from("exercises").select("id,slug"); })
       .then(function(r){
         if(r.error) throw r.error;
