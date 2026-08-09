@@ -17,12 +17,12 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   html, body {
     margin:0;
     padding:0;
-    background:#141719;
+    background:#0B1220;
     /* keep content clear of notches and the home bar */
     padding-top:env(safe-area-inset-top);
     padding-bottom:env(safe-area-inset-bottom);
@@ -33,18 +33,26 @@
 <body>
 <style>
   :root{
-    --iron:#141719;
-    --plate:#1D2226;
-    --plate-2:#252B30;
-    --knurl:#333B41;
-    --chalk:#EDEFEC;
-    --steel:#8B959C;
-    --steel-dim:#5E686F;
-    --amber:#F0B429;
-    --amber-dim:#6B5216;
+    /* "Strength Record" — the dark counterpart to the portfolio's
+       "Structured Record" system. Same tokens (ink-900, the amber and teal
+       accent pair, the mono/display/body trio); the light paper background
+       is swapped for the portfolio's own header/nav/footer navy, since that
+       stays legible under gym lighting where white paper would not. */
+    --iron:#0B1220;
+    --plate:#141B2E;
+    --plate-2:#1B2540;
+    --knurl:#2A3350;
+    --chalk:#EAF0FA;
+    --steel:#B7C0D6;
+    --steel-dim:#6B7690;
+    --amber:#C8811E;
+    --amber-dim:#3A2E12;
     --rust:#B4442E;
-    --display:"Barlow Condensed","Oswald","Arial Narrow",sans-serif;
-    --body:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --teal:#0E7C74;
+    --teal-dim:#0B3D39;
+    --teal-soft:#D8ECE9;
+    --display:"Space Grotesk","Arial",sans-serif;
+    --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     --mono:"IBM Plex Mono","SF Mono",Menlo,monospace;
   }
 
@@ -52,7 +60,9 @@
 
   #sl-app{
     font-family:var(--body);
-    background:var(--iron);
+    background:
+      linear-gradient(var(--iron),var(--iron)),
+      repeating-linear-gradient(0deg, rgba(234,240,250,0.025) 0px, rgba(234,240,250,0.025) 1px, transparent 1px, transparent 28px);
     color:var(--chalk);
     min-height:100vh;
     max-width:560px;
@@ -133,24 +143,47 @@
   .sl-card{
     background:var(--plate);
     border:1px solid var(--knurl);
-    border-radius:3px;
-    padding:14px 15px;
+    border-radius:6px;
+    padding:15px 16px;
     margin-bottom:10px;
+    position:relative;
+  }
+  /* die-cut corner — the portfolio's punch-card motif, carried over literally */
+  .sl-card::after, .sl-entry::after{
+    content:"";
+    position:absolute;
+    top:0; right:0;
+    width:16px; height:16px;
+    background:
+      linear-gradient(135deg,
+        transparent calc(50% - 0.5px),
+        var(--knurl) calc(50% - 0.5px),
+        var(--knurl) calc(50% + 0.5px),
+        var(--iron) calc(50% + 0.5px));
+    pointer-events:none;
   }
 
   .sl-btn{
-    display:block;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
     width:100%;
     background:var(--amber);
-    color:#171310;
-    font-family:var(--display);
-    font-size:19px;
-    font-weight:700;
-    letter-spacing:.12em;
+    color:#0B1220;
+    font-family:var(--mono);
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.06em;
     text-transform:uppercase;
-    padding:15px;
-    border-radius:3px;
+    padding:16px;
+    border-radius:4px;
+    border:1px solid var(--amber);
+    transition:transform .15s ease, box-shadow .15s ease;
   }
+  .sl-btn::after{content:"→";transition:transform .15s ease;}
+  .sl-btn:hover::after{transform:translateX(3px);}
+  .sl-btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(200,129,30,.30);}
   .sl-btn:disabled{background:var(--plate-2);color:var(--steel-dim);cursor:not-allowed;}
   .sl-btn-ghost{
     display:block;
@@ -162,8 +195,8 @@
     font-weight:600;
     letter-spacing:.12em;
     text-transform:uppercase;
-    padding:14px;
-    border-radius:3px;
+    padding:15px;
+    border-radius:4px;
     background:transparent;
   }
   .sl-btn-ghost:hover{color:var(--chalk);border-color:var(--steel-dim);}
@@ -204,7 +237,7 @@
     justify-content:space-between;
     margin-top:18px;
     border:1px solid var(--knurl);
-    border-radius:3px;
+    border-radius:6px;
     background:var(--plate);
   }
   .sl-datestrip button{
@@ -247,13 +280,22 @@
   .sl-entry{
     background:var(--plate);
     border:1px solid var(--knurl);
-    border-left:2px solid var(--knurl);
-    border-radius:3px;
+    border-radius:6px;
     padding:13px 14px;
     margin-bottom:9px;
+    position:relative;
+  }
+  .sl-entry[data-pr="1"]{border-color:var(--amber);}
+  .sl-entry[data-pr="1"]::after{
+    background:
+      linear-gradient(135deg,
+        transparent calc(50% - 0.5px),
+        var(--amber) calc(50% - 0.5px),
+        var(--amber) calc(50% + 0.5px),
+        var(--amber-dim) calc(50% + 0.5px));
   }
   .sl-entry[data-pr="1"]{border-left-color:var(--amber);}
-  .sl-entry-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .sl-entry-head{display:flex;align-items:center;gap:12px;}
   .sl-entry-name{
     font-family:var(--display);
     font-size:20px;
@@ -276,8 +318,8 @@
     font-size:12px;
     background:var(--plate-2);
     border:1px solid var(--knurl);
-    border-radius:2px;
-    padding:5px 8px;
+    border-radius:3px;
+    padding:5px 9px;
     color:var(--chalk);
     letter-spacing:.02em;
   }
@@ -390,12 +432,11 @@
   .sl-pick{
     width:100%;
     text-align:left;
-    padding:13px 2px;
+    padding:11px 2px;
     border-bottom:1px solid var(--knurl);
     display:flex;
-    justify-content:space-between;
     align-items:center;
-    gap:12px;
+    gap:13px;
   }
   .sl-pick:hover .sl-pick-name{color:var(--amber);}
   .sl-pick-name{
@@ -529,10 +570,10 @@
   }
   .sl-cue-text{font-size:13px;line-height:1.45;color:var(--chalk);}
   .sl-cue-text b{color:var(--amber);font-weight:600;}
-  .sl-cue[data-tone="hold"]{border-color:var(--knurl);background:transparent;}
-  .sl-cue[data-tone="hold"] .sl-cue-mark{color:var(--steel-dim);}
+  .sl-cue[data-tone="hold"]{border-color:var(--teal-dim);background:rgba(14,124,116,.08);}
+  .sl-cue[data-tone="hold"] .sl-cue-mark{color:var(--teal);}
   .sl-cue[data-tone="hold"] .sl-cue-text{color:var(--steel);}
-  .sl-cue[data-tone="hold"] .sl-cue-text b{color:var(--chalk);}
+  .sl-cue[data-tone="hold"] .sl-cue-text b{color:var(--teal-soft);}
 
   /* ---------- set rows ---------- */
   .sl-setrow{
@@ -553,7 +594,7 @@
     align-items:center;
     background:var(--plate);
     border:1px solid var(--knurl);
-    border-radius:3px;
+    border-radius:4px;
     overflow:hidden;
   }
   .sl-stepper button{
@@ -637,7 +678,10 @@
     flex:1;
     min-width:0;
     text-align:left;
-    padding:12px 0;
+    padding:11px 0;
+    display:flex;
+    align-items:center;
+    gap:12px;
   }
   .sl-lib-tap:hover .sl-pick-name{color:var(--amber);}
   .sl-lib-meta{
@@ -851,6 +895,88 @@
   }
   .sl-calstat b{color:var(--amber);font-weight:500;}
 
+  /* ---------- exercise artwork ---------- */
+  .sl-art{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    border-radius:11px;
+    overflow:hidden;
+    background:var(--plate-2);
+  }
+  .sl-art img{width:100%;height:100%;object-fit:cover;display:block;}
+  .sl-glyph{display:block;}
+
+  .sl-pick-body{flex:1;min-width:0;}
+  .sl-lib-body{flex:1;min-width:0;}
+  .sl-entry-body{flex:1;min-width:0;}
+
+  /* ---------- logger hero ---------- */
+  .sl-hero{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 0 16px;
+    border-bottom:1px solid var(--knurl);
+  }
+  .sl-hero-body{flex:1;min-width:0;}
+  .sl-hero-muscle{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    margin-bottom:5px;
+  }
+  .sl-hero-gear{
+    font-size:12.5px;
+    line-height:1.45;
+    color:var(--steel);
+  }
+  .sl-cam{
+    flex-shrink:0;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.10em;
+    padding:9px 12px;
+    border:1px solid var(--knurl);
+    border-radius:999px;
+    color:var(--steel);
+  }
+  .sl-cam:hover{color:var(--amber);border-color:var(--amber-dim);}
+
+  /* ---------- today summary ---------- */
+  .sl-summary{
+    display:flex;
+    gap:8px;
+    margin-top:16px;
+  }
+  .sl-sum{
+    flex:1;
+    background:var(--plate);
+    border:1px solid var(--knurl);
+    border-radius:10px;
+    padding:13px 12px 11px;
+    text-align:center;
+  }
+  .sl-sum b{
+    display:block;
+    font-family:var(--display);
+    font-size:27px;
+    font-weight:700;
+    line-height:1;
+    color:var(--chalk);
+  }
+  .sl-sum span{
+    display:block;
+    font-family:var(--mono);
+    font-size:9px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--steel-dim);
+    margin-top:6px;
+  }
+
   /* ---------- account button ---------- */
   .sl-acct{
     display:flex;
@@ -941,11 +1067,49 @@
     white-space:nowrap;
     padding:8px 13px;
     border:1px solid var(--knurl);
-    border-radius:999px;
-    color:var(--steel-dim);
+    border-radius:100px;
+    color:var(--steel);
+    background:var(--iron);
     flex-shrink:0;
+    transition:border-color .15s ease, color .15s ease, background .15s ease;
   }
-  .sl-chip[data-on="1"]{background:var(--amber);color:#171310;border-color:var(--amber);}
+  .sl-chip:hover{border-color:var(--teal);color:var(--teal-soft);background:var(--teal-dim);}
+  .sl-chip[data-on="1"]{background:var(--amber);color:#0B1220;border-color:var(--amber);}
+
+  /* ---------- muscle tabs ----------
+     Deliberately bigger and bolder than the equipment chips below them — this
+     is the primary way through 128 exercises, not a secondary refinement. */
+  .sl-tabstrip{
+    display:flex;
+    gap:7px;
+    overflow-x:auto;
+    padding:14px 0 4px;
+    margin:0 -18px;
+    padding-left:18px;
+    padding-right:18px;
+    scrollbar-width:none;
+  }
+  .sl-tabstrip::-webkit-scrollbar{display:none;}
+  .sl-mtab{
+    font-family:var(--display);
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.02em;
+    white-space:nowrap;
+    padding:10px 16px;
+    border:1px solid var(--knurl);
+    border-radius:4px;
+    color:var(--steel);
+    background:var(--plate);
+    flex-shrink:0;
+    transition:border-color .15s ease;
+  }
+  .sl-mtab:hover{border-color:var(--teal);}
+  .sl-mtab[data-on="1"]{
+    background:var(--amber);
+    color:#0B1220;
+    border-color:var(--amber);
+  }
 
   .sl-sheet-sub{
     font-family:var(--mono);
@@ -985,6 +1149,7 @@
     <div class="sl-page" id="sl-page"></div>
   </div>
   <div id="sl-sheet-mount"></div>
+  <input type="file" id="sl-cam-input" accept="image/*" capture="environment" style="display:none">
   <div id="sl-toast-mount"></div>
 </div>
 
@@ -1008,6 +1173,9 @@
     query: "",
     calMonth: null,
     sheetOpen: false,
+    pickMuscle: "all",
+    libMuscle: "all",
+    snapFor: null,
     eqFilter: "all",
     libFilter: "all",
     saving: false
@@ -1027,6 +1195,113 @@
                 you log is the weight on ONE side, not the total.
      assistance machines where the stack COUNTERWEIGHTS you (assisted pull-up/dip).
                 A lower number is harder, so progress runs downward. */
+  /* ============ exercise artwork ============
+     Every picture is DERIVED from the exercise's own fields — equipment category,
+     pulley height read out of its own name, muscle group. There is no lookup
+     table and no matching step, so a diagram cannot be attached to the wrong
+     exercise: it is computed from the exercise itself.
+
+     A photo the user takes of the actual machine overrides it when present. */
+
+  /* Harmonized into the portfolio's own two-accent family — warm amber and
+     deep teal, with one cool neutral — rather than a seven-color rainbow.
+     Chest and Back use the exact portfolio tokens; everything else is a
+     tasteful variant within that same warm/cool story. */
+  var MUSCLE_TINT = {
+    "Chest":          ["#C8811E", "#3A2E12"],
+    "Back":           ["#0E7C74", "#0B3D39"],
+    "Shoulders":      ["#7C8FC2", "#232C4A"],
+    "Arms · Triceps": ["#D9A64E", "#3D2F14"],
+    "Arms · Biceps":  ["#C86A3D", "#3A2416"],
+    "Legs":           ["#14968C", "#0F3D3A"],
+    "Core":           ["#8FADA8", "#1F332F"]
+  };
+  function tint(e){ return MUSCLE_TINT[e && e.muscle] || ["#B7C0D6", "#1B2540"]; }
+
+  /* HIGH / MID / LOW is written into the exercise name by the library itself */
+  function pulleyPos(e){
+    var t = (e.name + " " + (e.gear || "")).toUpperCase();
+    if (/HIGH PULLEY|TOP SETTING/.test(t))    return "high";
+    if (/LOW PULLEY|BOTTOM SETTING/.test(t))  return "low";
+    if (/MID PULLEY|CHEST HEIGHT/.test(t))    return "mid";
+    return null;
+  }
+
+  /* Each equipment category gets one pictogram. Drawn on a 48-unit grid. */
+  function glyphPaths(e, ink){
+    var eq = e.eq || "Machine";
+    var p = "";
+    var stroke = 'fill="none" stroke="'+ink+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"';
+
+    if(eq === "Cable"){
+      /* a cable tower; the carriage sits where YOUR pulley setting is */
+      var pos = pulleyPos(e);
+      var cy = pos === "high" ? 13 : pos === "low" ? 35 : 24;
+      p += '<path '+stroke+' d="M12 8 L12 40 M12 40 L20 40"/>';           // upright + base
+      p += '<rect x="7" y="'+(cy-4)+'" width="10" height="8" rx="2" fill="'+ink+'"/>';  // carriage
+      p += '<path '+stroke+' d="M17 '+cy+' L34 '+cy+'"/>';                // cable
+      p += '<path '+stroke+' d="M34 '+(cy-5)+' L34 '+(cy+5)+'"/>';        // handle
+      if(pos){ /* dotted track showing the other two positions */
+        p += '<path fill="none" stroke="'+ink+'" stroke-width="1.2" stroke-dasharray="2 3" d="M12 11 L12 37"/>';
+      }
+    } else if(eq === "Machine"){
+      /* seat, back pad, weight stack */
+      p += '<path '+stroke+' d="M10 30 L22 30 M22 30 L22 14"/>';
+      p += '<rect x="30" y="12" width="10" height="24" rx="2" '+stroke+'/>';
+      p += '<path fill="none" stroke="'+ink+'" stroke-width="1.6" d="M30 18 H40 M30 24 H40 M30 30 H40"/>';
+    } else if(eq === "Hammer"){
+      /* plate-loaded arm with a disc on the horn */
+      p += '<path '+stroke+' d="M12 36 L12 18 L26 12"/>';
+      p += '<circle cx="34" cy="24" r="9" '+stroke+'/>';
+      p += '<circle cx="34" cy="24" r="2.6" fill="'+ink+'"/>';
+      p += '<path '+stroke+' d="M26 12 L26 20"/>';
+    } else if(eq === "Smith"){
+      /* barbell captured on two vertical rails */
+      p += '<path fill="none" stroke="'+ink+'" stroke-width="1.6" d="M13 8 L13 40 M35 8 L35 40"/>';
+      p += '<path '+stroke+' d="M9 24 L39 24"/>';
+      p += '<rect x="10" y="19" width="5" height="10" rx="1.5" fill="'+ink+'"/>';
+      p += '<rect x="33" y="19" width="5" height="10" rx="1.5" fill="'+ink+'"/>';
+    } else if(eq === "Dumbbell"){
+      p += '<path '+stroke+' d="M17 24 L31 24"/>';
+      p += '<rect x="9"  y="16" width="7" height="16" rx="2" fill="'+ink+'"/>';
+      p += '<rect x="32" y="16" width="7" height="16" rx="2" fill="'+ink+'"/>';
+    } else if(eq === "Bar"){
+      p += '<path '+stroke+' d="M6 24 L42 24"/>';
+      p += '<rect x="12" y="15" width="5" height="18" rx="1.5" fill="'+ink+'"/>';
+      p += '<rect x="31" y="15" width="5" height="18" rx="1.5" fill="'+ink+'"/>';
+    } else { /* Body */
+      p += '<circle cx="24" cy="12" r="4.5" '+stroke+'/>';
+      p += '<path '+stroke+' d="M24 17 L24 29 M24 29 L18 40 M24 29 L30 40 M14 22 L34 22"/>';
+    }
+    return p;
+  }
+
+  function glyphSVG(e, px){
+    var c = tint(e), ink = c[0], back = c[1];
+    var size = px || 44;
+    return '<svg class="sl-glyph" width="'+size+'" height="'+size+'" viewBox="0 0 48 48" aria-hidden="true">'+
+             '<rect width="48" height="48" rx="11" fill="'+back+'"/>'+
+             glyphPaths(e, ink)+
+           '</svg>';
+  }
+
+  function photoOf(e){
+    var ph = state.data.photos || {};
+    return ph[slugOf(e)] || null;
+  }
+
+  /* The one call every list uses: your photo if you took one, the derived
+     diagram otherwise. */
+  function exArt(e, px){
+    var size = px || 44;
+    var src = photoOf(e);
+    if(src){
+      return '<span class="sl-art" style="width:'+size+'px;height:'+size+'px">'+
+             '<img src="'+src+'" alt="" width="'+size+'" height="'+size+'"></span>';
+    }
+    return '<span class="sl-art" style="width:'+size+'px;height:'+size+'px">'+glyphSVG(e, size)+'</span>';
+  }
+
   function slugify(name){
     return String(name).toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -1433,8 +1708,12 @@
     }
 
     if(todays.length){
-      h += '<div class="sl-daystat"><b>'+todays.length+'</b> exercise'+(todays.length>1?'s':'')+
-           ' &nbsp;·&nbsp; <b>'+sets+'</b> sets &nbsp;·&nbsp; <b>'+vol.toLocaleString()+'</b> lb moved</div>';
+      h += '<div class="sl-summary">';
+      h += '<div class="sl-sum"><b>'+todays.length+'</b><span>exercise'+(todays.length>1?'s':'')+'</span></div>';
+      h += '<div class="sl-sum"><b>'+sets+'</b><span>sets</span></div>';
+      h += '<div class="sl-sum"><b>'+(vol >= 10000 ? (vol/1000).toFixed(1)+'k' : vol.toLocaleString())+
+           '</b><span>lb moved</span></div>';
+      h += '</div>';
       h += '<div class="sl-eyebrow">Logged</div>';
       todays.forEach(function(s){
         var e = ex(s.exerciseId);
@@ -1442,7 +1721,7 @@
         var prior = sessionsFor(s.exerciseId).filter(function(p){ return p.date < s.date; });
         var isPR = prior.length && topWeight(s) > topWeight(prior[0]);
         h += '<div class="sl-entry" data-pr="'+(isPR?"1":"0")+'">';
-        h += '<div class="sl-entry-head"><div>';
+        h += '<div class="sl-entry-head">'+exArt(e, 40)+'<div class="sl-entry-body">';
         h += '<div class="sl-entry-name">'+esc(e.name)+'</div>';
         h += '<div class="sl-entry-gear">'+esc(e.gear)+'</div>';
         h += '</div><button class="sl-icon-btn" data-act="del" data-id="'+s.id+'">Remove</button></div>';
@@ -1472,6 +1751,21 @@
     pageEl.innerHTML = h;
   }
 
+  /* The best (or, for an assisted machine, the least-help) set ever logged for
+     an exercise, and the day it happened. Same rule renderHistoryDetail uses,
+     pulled out so the Records list can compute it for every exercise at once —
+     entirely from sessions and sets already on the device or synced down. */
+  function personalBest(e){
+    var chron = sessionsFor(e.id).slice().reverse();
+    if(!chron.length) return null;
+    var best = hardest(chron[0], e), bestDate = chron[0].date;
+    chron.forEach(function(s){
+      var w = hardest(s, e);
+      if(e.assist ? w <= best : w >= best){ best = w; bestDate = s.date; }
+    });
+    return { value: best, date: bestDate };
+  }
+
   function renderHistory(){
     var trained = state.data.exercises.filter(function(e){
       return sessionsFor(e.id).length > 0;
@@ -1483,15 +1777,44 @@
     }
     if(state.histId && ex(state.histId)) return renderHistoryDetail(ex(state.histId));
 
+    var view = state.histView || "list";
+    var h = '<div class="sl-chips" style="margin-top:16px">';
+    h += '<button class="sl-chip" data-act="histview" data-v="list" data-on="'+(view==="list"?"1":"0")+'">By exercise</button>';
+    h += '<button class="sl-chip" data-act="histview" data-v="records" data-on="'+(view==="records"?"1":"0")+'">Records</button>';
+    h += '</div>';
+
+    if(view === "records"){
+      var rows = trained.map(function(e){
+        var pb = personalBest(e);
+        return pb ? { e: e, pb: pb } : null;
+      }).filter(Boolean);
+      rows.sort(function(a,b){ return a.pb.date < b.pb.date ? 1 : -1; });
+
+      h += '<div class="sl-eyebrow">Heaviest set on record, most recent first</div>';
+      rows.forEach(function(row){
+        var e = row.e, pb = row.pb;
+        h += '<button class="sl-pick" data-act="hist" data-id="'+e.id+'">';
+        h += exArt(e, 42);
+        h += '<div class="sl-pick-body"><div class="sl-pick-name">'+esc(e.name)+'</div>';
+        h += '<div class="sl-pick-gear">'+esc(e.muscle)+' · '+shortDate(pb.date)+'</div></div>';
+        h += '<div class="sl-pick-last">'+pb.value+' <small style="display:inline;font-size:9px">'+unitLabel(e)+'</small>'+
+             '<small>'+(e.assist?'least help':'heaviest')+'</small></div>';
+        h += '</button>';
+      });
+      pageEl.innerHTML = h;
+      return;
+    }
+
     trained.sort(function(a,b){
       return sessionsFor(a.id)[0].date < sessionsFor(b.id)[0].date ? 1 : -1;
     });
-    var h = '<div class="sl-eyebrow">Every exercise you\'ve trained</div>';
+    h += '<div class="sl-eyebrow">Every exercise you\'ve trained</div>';
     trained.forEach(function(e){
       var ss = sessionsFor(e.id);
       var last = ss[0];
       h += '<button class="sl-pick" data-act="hist" data-id="'+e.id+'">';
-      h += '<div><div class="sl-pick-name">'+esc(e.name)+'</div>';
+      h += exArt(e, 42);
+      h += '<div class="sl-pick-body"><div class="sl-pick-name">'+esc(e.name)+'</div>';
       h += '<div class="sl-pick-gear">'+esc(e.gear)+' · '+ss.length+' session'+(ss.length>1?'s':'')+'</div></div>';
       h += '<div class="sl-pick-last">'+hardest(last, e)+' <small style="display:inline;font-size:9px">'+unitLabel(e)+'</small><small>'+agoText(last.date)+'</small></div>';
       h += '</button>';
@@ -1558,35 +1881,46 @@
 
   function renderLibrary(){
     var lfx = state.libFilter || "all";
+    var mfx = state.libMuscle || "all";
     var groups = {};
     state.data.exercises.forEach(function(e){
       if(lfx !== "all" && e.eq !== lfx) return;
+      if(mfx !== "all" && e.muscle !== mfx) return;
       (groups[e.muscle] = groups[e.muscle] || []).push(e);
     });
     var order = ["Chest","Back","Shoulders","Arms · Triceps","Arms · Biceps","Legs","Core"];
     Object.keys(groups).forEach(function(k){ if(order.indexOf(k)<0) order.push(k); });
 
-    var lf = state.libFilter || "all";
-    var h = '<div class="sl-chips" style="margin-top:16px">';
+    var h = '<div style="margin-top:16px">'+muscleTabsHTML(mfx, "libmuscle")+'</div>';
+    h += '<div class="sl-chips">';
     EQ.forEach(function(pair){
       h += '<button class="sl-chip" data-act="libfilter" data-eq="'+pair[0]+'" data-on="'+
-           (lf===pair[0]?"1":"0")+'">'+pair[1]+'</button>';
+           (lfx===pair[0]?"1":"0")+'">'+pair[1]+'</button>';
     });
     h += '</div>';
     h += '<div style="margin-top:14px"><button class="sl-btn-ghost" data-act="newex">+ Add your own exercise</button></div>';
+
+    var any = false;
     order.forEach(function(m){
       if(!groups[m]) return;
-      h += '<div class="sl-libgroup">'+esc(m)+'</div>';
+      any = true;
+      /* One muscle already selected — its name is the tab you just tapped,
+         repeating it as a header only adds a line to scroll past. */
+      if(mfx === "all") h += '<div class="sl-libgroup">'+esc(m)+'</div>';
       groups[m].forEach(function(e){
         var n = sessionsFor(e.id).length;
         h += '<div class="sl-lib-row"><button class="sl-lib-tap" data-act="choose" data-id="'+e.id+'">';
-        h += '<div class="sl-pick-name" style="font-size:18px">'+esc(e.name)+'</div>';
+        h += exArt(e, 40);
+        h += '<div class="sl-lib-body"><div class="sl-pick-name" style="font-size:18px">'+esc(e.name)+'</div>';
         h += '<div class="sl-lib-meta">'+esc(e.gear)+'</div>';
         h += '<div class="sl-lib-meta">target '+e.target+' reps · '+(e.assist?'−':'+')+e.step+' '+unitLabel(e)+
-             (n?' · '+n+' logged':'')+'</div>';
+             (n?' · '+n+' logged':'')+'</div></div>';
         h += '</button><button class="sl-btn-quiet" data-act="editex" data-id="'+e.id+'">Edit</button></div>';
       });
     });
+    if(!any){
+      h += '<div class="sl-empty"><strong>Nothing here</strong>No exercises match that combination of tab and filter.</div>';
+    }
 
     var autoOn = !(state.data.meta && state.data.meta.autoBackup === false);
     h += '<div class="sl-eyebrow">Cloud sync</div>';
@@ -1610,6 +1944,8 @@
     h += 'Sessions stored: <b>'+state.data.sessions.length+'</b><br>';
     h += 'Last backup: <b>'+(age2 && !age2.never ? age2.days+' days ago' :
          (state.data.sessions.length ? '<i>never</i>' : '—'))+'</b><br>';
+    var np = Object.keys(state.data.photos || {}).length;
+    h += 'Reference photos: <b>'+np+'</b>'+(np ? ' · '+Math.round(photoBytes()/1024)+' KB' : '')+'<br>';
     h += 'Eviction protection: <b>'+(state.persisted===null ? 'checking…' :
          (state.persisted ? 'on' : '<i>off</i>'))+'</b>';
     h += '</div>';
@@ -1660,8 +1996,32 @@
     if(!noAnim) sheetMount.querySelector(".sl-sheet").scrollTop = 0;
   }
 
-  /* Equipment filters. With 130-odd exercises, scrolling by muscle alone is too slow —
-     but you already know which machine you're standing at. */
+  /* Muscle tabs — the primary way through 128 exercises. Select one and the
+     scroll-past-everything-else problem goes away; the list becomes exactly
+     that muscle, nothing above or below it. */
+  var MUSCLES = [
+    ["all",             "All"],
+    ["Chest",           "Chest"],
+    ["Back",            "Back"],
+    ["Shoulders",       "Shoulders"],
+    ["Arms · Triceps",  "Triceps"],
+    ["Arms · Biceps",   "Biceps"],
+    ["Legs",            "Legs"],
+    ["Core",            "Core"]
+  ];
+
+  function muscleTabsHTML(active, act){
+    var h = '<div class="sl-tabstrip">';
+    MUSCLES.forEach(function(pair){
+      h += '<button class="sl-mtab" data-act="'+act+'" data-m="'+esc(pair[0])+'" data-on="'+
+           (active===pair[0]?"1":"0")+'">'+pair[1]+'</button>';
+    });
+    h += '</div>';
+    return h;
+  }
+
+  /* Equipment filters. A secondary refinement — muscle tabs get you to the
+     right group, this narrows further once you're there. */
   var EQ = [
     ["all",     "All"],
     ["Cable",   "Cable"],
@@ -1690,7 +2050,9 @@
   function pickRow(e){
     var ss = sessionsFor(e.id);
     var b = '<button class="sl-pick" data-act="choose" data-id="'+e.id+'">';
-    b += '<div><div class="sl-pick-name">'+esc(e.name)+'</div><div class="sl-pick-gear">'+esc(e.gear)+'</div></div>';
+    b += exArt(e, 42);
+    b += '<div class="sl-pick-body"><div class="sl-pick-name">'+esc(e.name)+'</div>'+
+         '<div class="sl-pick-gear">'+esc(e.gear)+'</div></div>';
     b += ss.length
       ? '<div class="sl-pick-last">'+hardest(ss[0], e)+'<small>'+agoText(ss[0].date)+'</small></div>'
       : '<div class="sl-pick-last" style="color:var(--steel-dim)">—<small>New</small></div>';
@@ -1701,12 +2063,14 @@
   function openPicker(noAnim){
     var q = state.query.toLowerCase().trim();
     var filt = state.eqFilter || "all";
+    var mus = state.pickMuscle || "all";
 
     var dayT = dayTypeOf(state.date);
     var sp = dayT ? splitById(dayT) : null;
     var splitMuscles = (filt === "split" && sp) ? sp[4] : null;
 
     function fits(e){
+      if(mus !== "all" && e.muscle !== mus) return false;
       if(splitMuscles && splitMuscles.indexOf(e.muscle) < 0) return false;
       if(filt !== "all" && filt !== "split" && e.eq !== filt) return false;
       return !q || (e.name+" "+e.gear+" "+e.muscle).toLowerCase().indexOf(q) >= 0;
@@ -1715,6 +2079,8 @@
     var list = state.data.exercises.filter(fits);
 
     var b = '<input class="sl-search" id="sl-q" placeholder="Search exercise, machine or setting…" value="'+esc(state.query)+'" autocomplete="off">';
+
+    b += muscleTabsHTML(mus, "pickmuscle");
 
     if(sp){
       b += '<div class="sl-chips">';
@@ -1743,12 +2109,14 @@
 
     if(!list.length){
       b += '<div class="sl-empty"><strong>No match</strong>'+
-           (splitMuscles ? 'Nothing here for a '+sp[1].toLowerCase()+' day. Tap <b>Everything</b> above to see the full library.'
+           (mus !== "all" ? 'Nothing in '+esc(mus)+' fits that. Try a different tab or word.'
+             : splitMuscles ? 'Nothing here for a '+sp[1].toLowerCase()+' day. Tap <b>Everything</b> above to see the full library.'
                          : 'Nothing fits that. Try a different word, or add it yourself from the Exercises tab.')+
            '</div>';
     }
 
-    var lastMuscle = "";
+    /* One muscle already selected via the tab — no header needed to repeat it. */
+    var lastMuscle = mus !== "all" ? mus : "";
     list.forEach(function(e){
       if(e.muscle !== lastMuscle){ b += '<div class="sl-libgroup">'+esc(e.muscle)+'</div>'; lastMuscle = e.muscle; }
       b += pickRow(e);
@@ -1782,6 +2150,12 @@
 
   function drawLogger(e, prev, r, noAnim){
     var b = '';
+
+    b += '<div class="sl-hero">'+exArt(e, 72)+'<div class="sl-hero-body">';
+    b += '<div class="sl-hero-muscle" style="color:'+tint(e)[0]+'">'+esc(e.muscle)+'</div>';
+    b += '<div class="sl-hero-gear">'+esc(e.gear)+'</div></div>';
+    b += '<button class="sl-cam" data-act="snap" data-id="'+e.id+'" aria-label="Photograph this machine">'+
+         (photoOf(e) ? 'RETAKE' : 'PHOTO')+'</button></div>';
 
     /* last time */
     b += '<div class="sl-lasttime">';
@@ -1989,7 +2363,22 @@
     b += '<div class="sl-field"><label>Weight step (lb)</label><input type="number" id="f-step" value="'+(e?e.step:5)+'"></div>';
     b += '</div>';
     b += '<div class="sl-hint">When every working set reaches your target reps, the app tells you to add one step of weight.</div>';
-    b += '<button class="sl-btn" data-act="saveex" data-id="'+(id||'')+'">'+(e?'Save changes':'Add exercise')+'</button>';
+    if(e){
+      b += '<div class="sl-eyebrow">Reference photo</div>';
+      b += '<div class="sl-card" style="display:flex;align-items:center;gap:14px">';
+      b += exArt(e, 64);
+      b += '<div style="flex:1;min-width:0"><div style="font-size:12px;line-height:1.5;color:var(--steel-dim)">'+
+           (photoOf(e)
+             ? 'Your photo of this machine.'
+             : 'No photo yet — the diagram is generated from this exercise\'s equipment and pulley setting.')+
+           '</div></div>';
+      b += '<button class="sl-btn-quiet" data-act="snap" data-id="'+e.id+'">'+(photoOf(e)?'Retake':'Take')+'</button>';
+      b += '</div>';
+      if(photoOf(e)){
+        b += '<div style="margin-top:8px"><button class="sl-btn-quiet" data-act="unsnap" data-id="'+e.id+'">Remove photo</button></div>';
+      }
+    }
+    b += '<div style="margin-top:18px"><button class="sl-btn" data-act="saveex" data-id="'+(id||'')+'">'+(e?'Save changes':'Add exercise')+'</button></div>';
     if(e){
       b += '<div style="margin-top:22px"><button class="sl-btn-quiet" data-act="delex" data-id="'+id+'">Delete exercise and its history</button></div>';
     }
@@ -2065,6 +2454,9 @@
     }
     if(act==="eqfilter"){ state.eqFilter = t.getAttribute("data-eq"); openPicker(true); return; }
     if(act==="libfilter"){ state.libFilter = t.getAttribute("data-eq"); render(); return; }
+    if(act==="pickmuscle"){ state.pickMuscle = t.getAttribute("data-m"); openPicker(true); return; }
+    if(act==="libmuscle"){ state.libMuscle = t.getAttribute("data-m"); render(); return; }
+    if(act==="histview"){ state.histView = t.getAttribute("data-v"); state.histId = null; render(); return; }
     if(act==="choose"){ openLogger(t.getAttribute("data-id")); return; }
     if(act==="hist"){ state.histId = t.getAttribute("data-id"); render(); return; }
     if(act==="histback"){ state.histId = null; render(); return; }
@@ -2256,12 +2648,40 @@
       return;
     }
     if(act==="syncnow"){ syncNow(false); return; }
+    if(act==="snap"){
+      state.snapFor = t.getAttribute("data-id");
+      var cam = document.getElementById("sl-cam-input");
+      if(cam){ cam.value = ""; cam.click(); }
+      return;
+    }
+    if(act==="unsnap"){
+      var e2 = ex(t.getAttribute("data-id"));
+      if(e2 && state.data.photos){
+        delete state.data.photos[slugOf(e2)];
+        commit("Photo removed");
+      }
+      return;
+    }
     if(act==="export"){ exportCSV(); return; }
     if(act==="exportjson"){ exportJSON(); return; }
     if(act==="import"){ document.getElementById("sl-file").click(); return; }
   });
 
   app.addEventListener("change", function(evt){
+    if(evt.target.id === "sl-cam-input"){
+      var f = evt.target.files && evt.target.files[0];
+      if(!f || !state.snapFor) return;
+      var target = ex(state.snapFor);
+      if(!target) return;
+      shrinkImage(f, 420, 0.72).then(function(dataUrl){
+        state.data.photos = state.data.photos || {};
+        state.data.photos[slugOf(target)] = dataUrl;
+        state.snapFor = null;
+        commit("Photo saved");
+        if(state.draft && state.draft.exerciseId === target.id) redrawLogger(true);
+      }).catch(function(){ toast("Couldn't read that photo"); });
+      return;
+    }
     if(evt.target.id !== "sl-file") return;
     var file = evt.target.files && evt.target.files[0];
     if(!file) return;
@@ -2269,7 +2689,9 @@
     reader.onload = function(){
       var incoming = safeParse(reader.result);
       if(!incoming || !incoming.exercises){ toast("That file isn't a Strength Log backup"); return; }
-      state.data = { exercises: incoming.exercises, sessions: incoming.sessions || [] };
+      state.data = { exercises: incoming.exercises, sessions: incoming.sessions || [],
+                     days: incoming.days || {}, photos: incoming.photos || {},
+                     meta: incoming.meta || {} };
       state.histId = null;
       commit("Restored " + state.data.sessions.length + " sessions");
     };
@@ -2300,6 +2722,41 @@
     drawLogger(e, prev, readiness(e, prev), noAnim);
     var ns = sheetMount.querySelector(".sl-sheet");
     if(ns) ns.scrollTop = y;
+  }
+
+  /* Phone photos are 3-5 MB. Stored raw they would blow the browser's storage
+     budget within a dozen exercises, so everything is re-encoded to a small
+     square before it is kept. */
+  function shrinkImage(file, maxPx, quality){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function(){
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function(){
+          var side = Math.min(img.width, img.height);       // centre crop to a square
+          var sx = (img.width  - side) / 2;
+          var sy = (img.height - side) / 2;
+          var out = Math.min(maxPx, side);
+          var cv = document.createElement("canvas");
+          cv.width = out; cv.height = out;
+          var ctx = cv.getContext("2d");
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, out, out);
+          try { resolve(cv.toDataURL("image/jpeg", quality)); }
+          catch(err){ reject(err); }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function photoBytes(){
+    var ph = state.data.photos || {};
+    var total = 0;
+    Object.keys(ph).forEach(function(k){ total += ph[k].length * 0.75; });
+    return total;
   }
 
   /* ============ export ============ */
@@ -2764,10 +3221,11 @@
       if(!state.data.sessions) state.data.sessions = [];
       if(!state.data.meta) state.data.meta = { lastBackup: null };
       if(!state.data.days) state.data.days = {};
+      if(!state.data.photos) state.data.photos = {};
       state.data = migrateLibrary(state.data);
       save();
     } else {
-      state.data = { exercises: seed(), sessions: [], days: {}, meta: { lastBackup: null, libVersion: LIB_VERSION } };
+      state.data = { exercises: seed(), sessions: [], days: {}, photos: {}, meta: { lastBackup: null, libVersion: LIB_VERSION } };
       save();
     }
     document.getElementById("sl-boot").classList.add("sl-hide");

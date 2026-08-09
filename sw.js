@@ -1,6 +1,6 @@
 /* Strength Log — offline support.
    Bump CACHE when you change any file, or phones will keep serving the old copy. */
-const CACHE = "strength-log-v12";
+const CACHE = "strength-log-v16";
 
 const FILES = [
   "./",
